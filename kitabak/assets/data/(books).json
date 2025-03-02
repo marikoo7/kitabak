@@ -1,0 +1,35 @@
+{
+    "explore": [
+      {
+        "id": 1,
+        "title": "Howl's Moving Castle",
+        "author": "Diana Wynne Jones",
+        "pages": 290,
+        "reviews": 7,
+        "image": "https://via.placeholder.com/100"
+      },
+      {
+        "id": 2,
+        "title": "The Age of Doubt",
+        "author": "Pak Kyongni",
+        "pages": 128,
+        "reviews": 5,
+        "image": "https://via.placeholder.com/100"
+      }
+    ],
+    "bestsellers": [
+      {
+        "id": 1,
+        "title": "Pride and Prejudice",
+        "author": "Jane Austen",
+        "image": "https://via.placeholder.com/100"
+      },
+      {
+        "id": 2,
+        "title": "Oliver Twist",
+        "author": "Charles Dickens",
+        "image": "https://via.placeholder.com/100"
+      }
+    ]
+  }
+  
