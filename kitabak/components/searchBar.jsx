@@ -17,7 +17,7 @@ export default function SearchBar({ onSearch, setSearchPerformed }) {
     setSearchPerformed(true); // Search has now started
 
     try {
-      const response = await fetch(`http://192.168.1.17:5000/search-books?query=${text}`);
+      const response = await fetch(`http://192.168.1.17:3000/search-books?query=${text}`);
       const data = await response.json();
       onSearch(data); // Pass results to parent component
     } catch (error) {
