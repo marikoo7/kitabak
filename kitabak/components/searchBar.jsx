@@ -2,12 +2,28 @@ import { View, TextInput, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 
-export default function SearchBar({ onSearch }) {
+export default function SearchBar({ onSearch, setSearchPerformed }) {
   const [query, setQuery] = useState("");
 
-  const handleInputChange = (text) => {
+  const handleInputChange = async (text) => {
     setQuery(text);
-    onSearch(text);
+
+    if (text.trim() === "") {
+      setSearchPerformed(false); // Mark that no search has been performed
+      onSearch([]); // Clears results if input is empty
+      return;
+    }
+
+    setSearchPerformed(true); // Search has now started
+
+    try {
+      const response = await fetch(`http://192.168.1.17:5000/search-books?query=${text}`);
+      const data = await response.json();
+      onSearch(data); // Pass results to parent component
+    } catch (error) {
+      console.error("Error fetching books:", error);
+      onSearch([]); // Return empty if there's an error
+    }
   };
 
   return (
@@ -32,7 +48,7 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     paddingHorizontal: 18,
     height: 50,
-    width: "70%", // Make the search bar take only 60% of the screen width
+    width: "70%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
