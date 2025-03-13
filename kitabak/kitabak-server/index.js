@@ -1,9 +1,8 @@
 const express = require('express');
-const app = express();
-const port = process.env.PORT || 3000;
 const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
+const app = express();
 app.use(cors());
 app.use(express.json());
 
@@ -16,18 +15,31 @@ const client = new MongoClient(uri, {
   }
 });
 
-let bookCollections; 
+let bookCollections;
 
-async function run() {
-  try {
-    await client.connect();
-    bookCollections = client.db("BookInventory").collection("books"); // Assign collection
-    console.log("Connected to MongoDB!");
-  } catch (err) {
-    console.error("Error connecting to MongoDB:", err);
+// Ensure the database connection is ready before processing requests
+async function connectDB() {
+  if (!bookCollections) {
+    try {
+      await client.connect();
+      bookCollections = client.db("BookInventory").collection("books");
+      console.log("Connected to MongoDB!");
+    } catch (err) {
+      console.error("Database connection error:", err);
+      throw err;
+    }
   }
 }
-run();
+
+// Middleware to ensure DB connection before handling any request
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ error: "Database connection failed" });
+  }
+});
 
 // POST - Upload a new book
 app.post("/upload-book", async (req, res) => {
@@ -47,52 +59,50 @@ app.post("/upload-book", async (req, res) => {
 
 // GET - Retrieve all books from the database and by genres
 app.get("/all-books", async (req, res) => {
-    try {
-      const { genre } = req.query;
-  
-      let filter = {};
-      if (genre) {
-        const genresArray = genre.split(","); 
-        filter = { genres: { $in: genresArray } };
-      }
-  
-      const books = await bookCollections.find(filter).toArray();
-      res.status(200).json(books);
-    } catch (err) {
-      console.error("Error fetching books:", err);
-      res.status(500).json({ error: "Failed to fetch books" });
-    }
-});
+  try {
+    const { genre } = req.query;
 
+    let filter = {};
+    if (genre) {
+      const genresArray = genre.split(",");
+      filter = { genres: { $in: genresArray } };
+    }
+
+    const books = await bookCollections.find(filter).toArray();
+    res.status(200).json(books);
+  } catch (err) {
+    console.error("Error fetching books:", err);
+    res.status(500).json({ error: "Failed to fetch books" });
+  }
+});
 
 // PATCH - Update a book by ID
 app.patch("/book/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const updateData = req.body;
-  
-      if (!ObjectId.isValid(id)) {
-        return res.status(400).json({ error: "Invalid book ID format" });
-      }
-  
-      const result = await bookCollections.updateOne(
-        { _id: new ObjectId(id) }, 
-        { $set: updateData }
-      );
-  
-      if (result.matchedCount === 0) {
-        return res.status(404).json({ error: "Book not found" });
-      }
-  
-      res.status(200).json({ message: "Book updated successfully", result });
-    } catch (err) {
-      console.error("Error updating book:", err);
-      res.status(500).json({ error: "Failed to update book" });
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid book ID format" });
     }
+
+    const result = await bookCollections.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: "Book not found" });
+    }
+
+    res.status(200).json({ message: "Book updated successfully", result });
+  } catch (err) {
+    console.error("Error updating book:", err);
+    res.status(500).json({ error: "Failed to update book" });
+  }
 });
 
 // DELETE - Remove a book by ID
-
 app.delete("/book/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -114,37 +124,39 @@ app.delete("/book/:id", async (req, res) => {
   }
 });
 
-// GET - Search books by title, author, generes 
+// GET - Search books by title, author, genres
 app.get("/search-books", async (req, res) => {
-    try {
-      const { query } = req.query;
-      if (!query) {
-        return res.status(400).json({ error: "Search query is required" });
-      }
-
-      // Escape special characters to prevent regex errors
-      const escapedQuery = query.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-
-      // Match only from the beginning of words 
-      const regex = new RegExp(`\\b${escapedQuery}`, "i");
-
-      // Search books by title, author, or genre
-      const books = await bookCollections.find({
-        $or: [
-          { title: { $regex: regex} },
-          { author: { $regex: regex} },
-          { genres: { $regex: regex} },
-        ],
-      }).toArray();
-  
-      res.status(200).json(books);
-    } catch (err) {
-      console.error("Error searching books:", err);
-      res.status(500).json({ error: "Failed to search books" });
+  try {
+    const { query } = req.query;
+    if (!query) {
+      return res.status(400).json({ error: "Search query is required" });
     }
-});
-  
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+    const escapedQuery = query.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+    const regex = new RegExp(`\\b${escapedQuery}`, "i");
+
+    const books = await bookCollections.find({
+      $or: [
+        { title: { $regex: regex } },
+        { author: { $regex: regex } },
+        { genres: { $regex: regex } },
+      ],
+    }).toArray();
+
+    res.status(200).json(books);
+  } catch (err) {
+    console.error("Error searching books:", err);
+    res.status(500).json({ error: "Failed to search books" });
+  }
 });
+
+// LOCAL HOST SUPPORT: Start server only when running locally
+if (process.env.NODE_ENV !== "vercel") {
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
+
+// EXPORT for Vercel
+module.exports = app;
