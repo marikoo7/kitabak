@@ -1,31 +1,37 @@
 import { View, TextInput, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { fetchBooks, searchBooks } from "../../kitabak/kitabak-server/database"; 
 
 export default function SearchBar({ onSearch, setSearchPerformed }) {
   const [query, setQuery] = useState("");
+  const [allBooks, setAllBooks] = useState([]);
 
-  const handleInputChange = async (text) => {
+  useEffect(() => {
+    const loadBooks = async () => {
+      try {
+        const books = await fetchBooks();
+        setAllBooks(books || []); 
+      } catch (error) {
+        console.error("Error fetching books:", error);
+      }
+    };
+    loadBooks();
+  }, []);
+
+  const handleInputChange = (text) => {
     setQuery(text);
 
-    if (text.trim() === "") {
-      setSearchPerformed(false); // Mark that no search has been performed
-      onSearch([]); // Clears results if input is empty
+    if (!text.trim()) {
+      setSearchPerformed(false);
+      onSearch([]);
       return;
     }
 
-    setSearchPerformed(true); // Search has now started
-
-    try {
-      const response = await fetch(`https://kitabak.vercel.app/search-books?query=${text}`);
-      const data = await response.json();
-      onSearch(data); // Pass results to parent component
-    } catch (error) {
-      console.error("Error fetching books:", error);
-      onSearch([]); // Return empty if there's an error
-    }
+    setSearchPerformed(true);
+    onSearch(searchBooks(text, allBooks));
   };
-
+  
   return (
     <View style={styles.container}>
       <Ionicons name="search-outline" size={20} color="#b0ad9a" style={styles.icon} />

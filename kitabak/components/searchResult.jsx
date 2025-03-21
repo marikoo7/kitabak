@@ -3,14 +3,14 @@ import { View, FlatList, Text, TouchableOpacity, StyleSheet } from "react-native
 
 export default function BookList({ books, searchPerformed }) {
   if (searchPerformed && !books.length) {
-    return <Text style={styles.noResults}>No books found.</Text>;
+    return <Text style={styles.noResults}>No books found</Text>;
   }
 
   return (
     <View style={styles.container}>
       <FlatList
         data={books}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.bookItem}>
             <Text style={styles.title}>{item.title}</Text>
@@ -25,7 +25,7 @@ export default function BookList({ books, searchPerformed }) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, // Ensures it takes full space and allows scrolling
+    flex: 1,
   },
   noResults: {
     textAlign: "center",
