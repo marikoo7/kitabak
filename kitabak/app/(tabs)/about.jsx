@@ -49,8 +49,8 @@ const styles = StyleSheet.create({
   },
   profileContainer: {
     position: "absolute",
-    top: 33,
-    right: 20,
+    top: 23,
+    right: 10,
   },
   searchContainer: {
     top: 35,
