@@ -3,12 +3,17 @@ import { useState } from "react";
 import { Image, View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useFonts } from "expo-font";
 
 export default function TabLayout() {
   // to know if the user is logged in or not
   const [user, setUser] = useState({
     loggedIn: false,
     profilePic: "https://example.com/user-profile.jpg",
+  });
+
+  const [fontsLoaded] = useFonts({
+    "MalibuSunday": require("../../assets/fonts/MalibuSundaySerif-gwMnE.ttf"), // Update with your font file name
   });
 
   return (

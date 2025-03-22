@@ -5,31 +5,51 @@ import { auth } from "../../kitabak-server/firebaseConfig";
 import ProfilePic from "../../components/profilePic";
 import Login from "../../components/login";
 import SignUp from "../../components/signUp";
+import GetStarted from "../../components/getStarted"; // Import WelcomeScreen
 
 const { width, height } = Dimensions.get("window");
 
 export default function ProfileScreen() {
   const [user, setUser] = useState(null);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true); // Track if welcome screen is shown
 
   // Listen for authentication state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return unsubscribe;
+    const timeout = setTimeout(() => {
+      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        setUser(currentUser);
+        if (currentUser) setShowWelcome(false); // Hide welcome only if logged in
+      });
+      return () => {
+        unsubscribe();
+        clearTimeout(timeout);
+      };
+    }, 500); // Small delay before checking auth (0.5s)
   }, []);
 
   const handleLogout = async () => {
     await signOut(auth);
+    setShowWelcome(true); // Show welcome screen again
   };
 
-  if (!user) {
-    return isSignUp ? (
-      <SignUp onSwitchToLogin={() => setIsSignUp(false)} />
-    ) : (
-      <Login onSwitchToSignUp={() => setIsSignUp(true)} />
+  if (showWelcome) {
+    return (
+      <GetStarted 
+        onSignUp={() => {
+          setIsSignUp(true);
+          setShowWelcome(false); // Hide GetStarted and show SignUp
+        }} 
+        onLogin={() => {
+          setIsSignUp(false);
+          setShowWelcome(false); // Hide GetStarted and show Login
+        }} 
+      />
     );
+  }
+
+  if (!user) {
+    return isSignUp ? <SignUp onSwitchToLogin={() => setIsSignUp(false)} /> : <Login onSwitchToSignUp={() => setIsSignUp(true)} />;
   }
 
   return (
