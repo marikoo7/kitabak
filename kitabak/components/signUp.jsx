@@ -45,9 +45,9 @@ export default function SignUp({ onSwitchToLogin }) {
     <View style={styles.container}>
       <Image source={require("../../kitabak/assets/images/photo_2025-03-22_05-01-06-removebg-preview.png")} style={styles.logo} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <TextInput style={styles.input} placeholder="username" value={username} onChangeText={setUsername} />
-      <TextInput style={styles.input} placeholder="email" value={email} onChangeText={setEmail} />
-      <TextInput style={styles.input} placeholder="password" value={password} onChangeText={setPassword} secureTextEntry />
+      <TextInput style={styles.input} placeholder="username" placeholderTextColor="#7d7362" value={username} onChangeText={setUsername} />
+      <TextInput style={styles.input} placeholder="email" value={email}  placeholderTextColor="#7d7362" onChangeText={setEmail} />
+      <TextInput style={styles.input} placeholder="password" value={password}  placeholderTextColor="#7d7362" onChangeText={setPassword} secureTextEntry />
       
       <TouchableOpacity style={styles.signupButton} onPress={handleSignUp}>
         <Text style={styles.signupText}>Sign Up</Text>
@@ -88,7 +88,6 @@ const styles = StyleSheet.create({
     borderRadius: 20, 
     backgroundColor: "#e7e6df", 
     marginBottom: 10,
-    color: "#7d7362"
   },
   signupButton: { 
     width: "85%", 

@@ -35,13 +35,15 @@ export default function Login({ onSwitchToSignUp }) {
       
       <TextInput 
         style={styles.input} 
-        placeholder="email" 
+        placeholder="email"
+        placeholderTextColor="#7d7362" 
         value={email} 
         onChangeText={setEmail} 
       />
       <TextInput 
         style={styles.input} 
         placeholder="password" 
+        placeholderTextColor="#7d7362"
         value={password} 
         onChangeText={setPassword} 
         secureTextEntry 
@@ -86,7 +88,6 @@ const styles = StyleSheet.create({
     borderRadius: 20, 
     backgroundColor: "#e7e6df", 
     marginBottom: 10,
-    color: "#7d7362"
   },
   loginButton: { 
     width: "85%", 
