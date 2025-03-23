@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Image } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { useState } from "react";
 import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore"; 
@@ -15,18 +15,18 @@ export default function SignUp({ onSwitchToLogin }) {
       setError("Please fill in all fields.");
       return;
     }
-  
+    
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-  
+      
       await setDoc(doc(db, "users", user.uid), {
         username: username,
         email: user.email,
-        profilePic: "https://example.com/default-profile.jpg", // Default profile image
+        profilePic: "https://example.com/default-profile.jpg",
         createdAt: new Date(),
       });
-  
+      
       alert("Account created successfully!");
     } catch (error) {
       setError("Error signing up: " + error.message);
@@ -43,32 +43,90 @@ export default function SignUp({ onSwitchToLogin }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sign Up</Text>
+      <Image source={require("../../kitabak/assets/images/photo_2025-03-22_05-01-06-removebg-preview.png")} style={styles.logo} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <TextInput style={styles.input} placeholder="Username" value={username} onChangeText={setUsername} />
-      <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} />
-      <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
-      <Button title="Sign Up" onPress={handleSignUp} />
+      <TextInput style={styles.input} placeholder="username" value={username} onChangeText={setUsername} />
+      <TextInput style={styles.input} placeholder="email" value={email} onChangeText={setEmail} />
+      <TextInput style={styles.input} placeholder="password" value={password} onChangeText={setPassword} secureTextEntry />
+      
+      <TouchableOpacity style={styles.signupButton} onPress={handleSignUp}>
+        <Text style={styles.signupText}>Sign Up</Text>
+      </TouchableOpacity>
       
       <Text style={styles.orText}>or</Text>
+      
       <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignUp}>
-        <Image source={{ uri: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png" }} style={styles.googleIcon} />
-        <Text style={styles.googleText}>Sign up with Google</Text>
+        <Image source={require("../../kitabak/assets/images/Google-Symbol.png")} style={styles.googleIcon} />
       </TouchableOpacity>
-
-      <Text style={styles.switchText} onPress={onSwitchToLogin}>Already have an account? Login</Text>
+      
+      <Text style={styles.loginText} onPress={onSwitchToLogin}>
+        Already have an account? <Text style={styles.loginLink}>Log in</Text>
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center" },
-  title: { fontSize: 22, fontWeight: "bold", marginBottom: 10 },
-  error: { color: "red", marginBottom: 10 },
-  input: { width: "80%", padding: 10, borderWidth: 1, borderRadius: 5, marginBottom: 10 },
-  orText: { marginVertical: 10 },
-  googleButton: { flexDirection: "row", alignItems: "center", padding: 10, borderWidth: 1, borderRadius: 5 },
-  googleIcon: { width: 20, height: 20, marginRight: 10 },
-  googleText: { fontSize: 16 },
-  switchText: { color: "blue", marginTop: 10 },
+  container: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    backgroundColor: "#f6f6f4" 
+  },
+  logo: { 
+    width: 140, 
+    height: 155, 
+    marginBottom: 20 
+  },
+  error: { 
+    color: "red", 
+    marginBottom: 10 
+  },
+  input: { 
+    width: "85%", 
+    padding: 15, 
+    borderRadius: 20, 
+    backgroundColor: "#e7e6df", 
+    marginBottom: 10,
+    color: "#7d7362"
+  },
+  signupButton: { 
+    width: "85%", 
+    padding: 17, 
+    borderRadius: 20, 
+    backgroundColor: "#b0ad9a", 
+    alignItems: "center" 
+  },
+  signupText: { 
+    color: "#f6f6f4", 
+    fontSize: 20 
+  },
+  orText: { 
+    marginVertical: 15, 
+    color: "#7d7362",
+    fontSize: 20
+  },
+  googleButton: { 
+    width: 55, 
+    height: 55, 
+    borderRadius: 28, 
+    borderWidth: 1, 
+    backgroundColor: "white",
+    borderColor: "#B8B29C", 
+    justifyContent: "center", 
+    alignItems: "center" 
+  },
+  googleIcon: { 
+    width: 30, 
+    height: 30 
+  },
+  loginText: { 
+    marginTop: 15, 
+    color: "#7d7362",
+    fontSize: 16
+  },
+  loginLink: { 
+    fontWeight: "bold", 
+    color: "#585047" 
+  }
 });
