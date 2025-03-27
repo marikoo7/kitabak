@@ -7,6 +7,15 @@ import React, { useEffect } from "react";
 import { Text, FlatList, Image, ScrollView , SafeAreaView} from "react-native";
 import { shuffle } from "lodash";
 import bookImage from '../../assets/images/Howl-s-Moving-Castle.jpg';
+import bookImage2 from '../../assets/images/R.jpg';
+import bookImage3 from '../../assets/images/OIP.jpg';
+import bookImage4 from '../../assets/images/R (1).jpg';
+import bookImage5 from '../../assets/images/historical-graphic-novels.jpg';
+import bookImage6 from '../../assets/images/ss.jpg';
+import bookImage7 from '../../assets/images/aa.jpg';
+import bookImage8 from '../../assets/images/bb.jpg';
+import bookImage9 from '../../assets/images/cc.jpg';
+import bookImage10 from '../../assets/images/dd.jpg';
 
 export default function StoreScreen() {
   
@@ -16,20 +25,32 @@ export default function StoreScreen() {
   });
   const [bookss, setBookss] = useState([]);
   const [books, setBooks] = useState([]);
+  const [books1, setBooks1] = useState([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
   useEffect(() => {
       const bookData = [
       { id: "1", title: "Howl’s Moving Castle", author: "Diana Wynne Jones", image: bookImage, category: "Fantasy" },
-      { id: "2", title: "The Age of Doubt", author: "Pak Kyongni", image: bookImage, category: "Fictional" },
-      { id: "3", title: "Howl’s Moving Castle", author: "George Orwell", image: bookImage, category: "Fictional" },
-      { id: "4", title: "Brave New World", author: "Aldous Huxley",  image: bookImage, category: "Historical" },
-      { id: "5", title: "Non-Fiction Example", author: "Author Name",image: bookImage, category: "Non-fictional" },
-      { id: "6", title: "Another Fantasy Book", author: "Another Author", image: bookImage, category: "Fantasy" },
-      { id: "7", title: "Historical Novel", author: "History Writer", image: bookImage, category: "Historical" },
-      { id: "8", title: "Non-Fiction Title", author: "Non-Fiction Author", image: bookImage, category: "Non-fictional" }
+      { id: "2", title: "The Age of Doubt", author: "Pak Kyongni", image: bookImage4, category: "Fictional" },
+      { id: "3", title: "1984", author: "George Orwell", image: bookImage6, category: "Fictional" },
+      { id: "4", title: "Brave New World", author: "Aldous Huxley",  image: bookImage2, category: "Historical" },
+      { id: "5", title: "Non-Fiction Example", author: "Author Name",image: bookImage3, category: "Non-fictional" },
+      { id: "6", title: "Another Fantasy Book", author: "Another Author", image: bookImage7, category: "Fantasy" },
+      { id: "7", title: "Historical Novel", author: "History Writer", image: bookImage5, category: "Historical" },
+      { id: "8", title: "Non-Fiction Title", author: "Non-Fiction Author", image: bookImage8, category: "Non-fictional" }
       ];
-  
+      const bookData2 = [
+        { id: "1", title: "Howl’s Moving Castle", author: "Diana Wynne Jones", image: bookImage, category: "Fantasy" },
+        { id: "2", title: "The Age of Doubt", author: "Pak Kyongni", image: bookImage4, category: "Fictional" },
+        { id: "3", title: "1984", author: "George Orwell", image: bookImage6, category: "Fictional" },
+        { id: "4", title: "Brave New World", author: "Aldous Huxley",  image: bookImage9, category: "Historical" },
+        { id: "5", title: "Non-Fiction Example", author: "Author Name",image: bookImage3, category: "Non-fictional" },
+        { id: "6", title: "Another Fantasy Book", author: "Another Author", image: bookImage10, category: "Fantasy" },
+        { id: "7", title: "Historical Novel", author: "History Writer", image: bookImage5, category: "Historical" },
+        { id: "8", title: "Non-Fiction Title", author: "Non-Fiction Author", image: bookImage8, category: "Non-fictional" }
+        ];
+    
       setBookss(shuffle(bookData));
+      setBooks1(shuffle(bookData2));
     }, []);
 
   return (
@@ -60,9 +81,7 @@ export default function StoreScreen() {
                 <View style={styles.desc}>
                 <Text style={styles.bookTitle}>{item.title}</Text>
                 <Text style={styles.bookAuthor}>{item.author}</Text>
-                <View style={styles.review}>
-                  
-                </View>
+            
                 </View>
                 
               </View>
@@ -71,7 +90,7 @@ export default function StoreScreen() {
       
           <Text style={styles.header2}>Non-Fictional </Text>
           <FlatList
-            data={bookss}
+            data={books1}
             keyExtractor={(item) => item.id}
             horizontal showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => (
@@ -190,4 +209,3 @@ export default function StoreScreen() {
      
     });
     
-  
