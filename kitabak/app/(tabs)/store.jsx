@@ -3,52 +3,191 @@ import { useState } from "react";
 import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
 import SearchResult from "@/components/searchResult";
+import React, { useEffect } from "react";
+import { Text, FlatList, Image, ScrollView , SafeAreaView} from "react-native";
+import { shuffle } from "lodash";
+import bookImage from '../../assets/images/Howl-s-Moving-Castle.jpg';
 
 export default function StoreScreen() {
+  
   const [user, setUser] = useState({
     loggedIn: false,
     profilePic: "https://example.com/user-profile.jpg",
   });
+  const [bookss, setBookss] = useState([]);
   const [books, setBooks] = useState([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
+  useEffect(() => {
+      const bookData = [
+      { id: "1", title: "Howl’s Moving Castle", author: "Diana Wynne Jones", image: bookImage, category: "Fantasy" },
+      { id: "2", title: "The Age of Doubt", author: "Pak Kyongni", image: bookImage, category: "Fictional" },
+      { id: "3", title: "Howl’s Moving Castle", author: "George Orwell", image: bookImage, category: "Fictional" },
+      { id: "4", title: "Brave New World", author: "Aldous Huxley",  image: bookImage, category: "Historical" },
+      { id: "5", title: "Non-Fiction Example", author: "Author Name",image: bookImage, category: "Non-fictional" },
+      { id: "6", title: "Another Fantasy Book", author: "Another Author", image: bookImage, category: "Fantasy" },
+      { id: "7", title: "Historical Novel", author: "History Writer", image: bookImage, category: "Historical" },
+      { id: "8", title: "Non-Fiction Title", author: "Non-Fiction Author", image: bookImage, category: "Non-fictional" }
+      ];
+  
+      setBookss(shuffle(bookData));
+    }, []);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={{ flex:1}}>
+      
+          <View style={styles.profileContainer}>
+              <ProfilePic uri={user.loggedIn ? user.profilePic : null} size={80} />
+            </View>
+      
+            <View style={styles.searchContainer}>
+              <SearchBar onSearch={setBooks} setSearchPerformed={setSearchPerformed} />
+            </View>
+      
+            <View style={styles.searchResult}>
+              <SearchResult books={books} searchPerformed={searchPerformed} />
+            </View>
+          <ScrollView contentContainerStyle={styles.container}>
+          <Text style={styles.header1}>Fictional </Text>
+          <FlatList
+            data={bookss}
+            keyExtractor={(item) => item.id}
+            horizontal showsHorizontalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <View style={styles.bookContainer}>
+                <View style={styles.excontainer}>
+                <Image source={ item.image } style={styles.bookImage} />
+                </View>
+                <View style={styles.desc}>
+                <Text style={styles.bookTitle}>{item.title}</Text>
+                <Text style={styles.bookAuthor}>{item.author}</Text>
+                <View style={styles.review}>
+                  
+                </View>
+                </View>
+                
+              </View>
+            )}
+          />
+      
+          <Text style={styles.header2}>Non-Fictional </Text>
+          <FlatList
+            data={bookss}
+            keyExtractor={(item) => item.id}
+            horizontal showsHorizontalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <View style={styles.bookContainer}>
+                <View style={styles.excontainer}>
+                <Image source={ item.image } style={styles.bookImage} />
+                </View>
+                <View style={styles.desc}>
+                <Text style={styles.bookTitle}>{item.title}</Text>
+                <Text style={styles.bookAuthor}>{item.author}</Text>
+               
+                </View>
+              </View>
+            )}
+          />
+          <Text style={styles.header2}>Fantasy</Text>
+          <FlatList
+            data={bookss}
+            keyExtractor={(item) => item.id}
+            horizontal showsHorizontalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <View style={styles.bookContainer}>
+                <View style={styles.excontainer}>
+                <Image source={ item.image } style={styles.bookImage} />
+                </View>
+                <View style={styles.desc}>
+                <Text style={styles.bookTitle}>{item.title}</Text>
+                <Text style={styles.bookAuthor}>{item.author}</Text>
+                
+                </View>
+              </View>
+            )}
+          />
+          <Text style={styles.header3}>Romantic</Text>
+          <FlatList
+            data={bookss}
+            keyExtractor={(item) => item.id}
+            horizontal showsHorizontalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <View style={styles.bookContainer}>
+                <View style={styles.excontainer}>
+                <Image source={ item.image } style={styles.bookImage} />
+                </View>
+                <View style={styles.desc}>
+                <Text style={styles.bookTitle}>{item.title}</Text>
+                <Text style={styles.bookAuthor}>{item.author}</Text>
+    
+                </View>
+              </View>
+            )}
+          />
+          <Text style={styles.header4}>Historical </Text>
+          <FlatList
+            data={bookss}
+            keyExtractor={(item) => item.id}
+            horizontal showsHorizontalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <View style={styles.bookContainer}>
+                <View style={styles.excontainer}>
+                <Image source={ item.image } style={styles.bookImage} />
+                </View>
+                <View style={styles.desc}>
+                <Text style={styles.bookTitle}>{item.title}</Text>
+                <Text style={styles.bookAuthor}>{item.author}</Text>
+                
+                </View>
+              </View>
+            )}
+          />
+          </ScrollView>
+          </SafeAreaView>  
+    
+      );
+    };
+    
+    const styles = StyleSheet.create({
+      container: { padding: 16 },
+      profileContainer: {
+        position: "absolute",
+        top: 33,
+        right: 20,
+      },
+      searchContainer: {
+        top: 35,
+        left: 10,
+      },
+      searchResult: {
+        marginTop: 40,
+        paddingHorizontal: 10,
+      },
+      
+      header1: { fontSize: 40, fontWeight: "bold", marginBottom: 10 },
+      header2: { fontSize: 40, fontWeight: "bold", marginBottom: 10 },
+      header3: { fontSize: 40, fontWeight: "bold", marginBottom: 10 },
+      header4: { fontSize: 40, fontWeight: "bold", marginBottom: 10 },
+      header5: { fontSize: 40, fontWeight: "bold", marginBottom: 10 },
+      
+      
 
-      <View style={styles.profileContainer}>
-        <ProfilePic uri={user.loggedIn ? user.profilePic : null} size={80} />
-      </View>
+      bookContainer: {
+        padding: 10,
+        borderRadius: 10,
+        justifyContent:"center"
+      },excontainer:{
+        paddingRight:20
+      },desc:{
+        justifyContent:'center',
+      },
+      bookImage: { width: 100, height: 150, borderRadius: 8 },
+      bookTitle: { fontSize: 10, fontWeight: "bold", marginTop: 5 , color:"#7d7362"},
+      bookAuthor: { fontSize: 10,color:'#b0ad9a'},
+      
+      
+      bkP:{paddingRight:10, paddingTop:10},
 
-      <View style={styles.searchContainer}>
-        <SearchBar onSearch={setBooks} setSearchPerformed={setSearchPerformed} />
-      </View>
-
-      <View style={styles.searchResult}>
-        <SearchResult books={books} searchPerformed={searchPerformed} />
-      </View>
-
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f6f6f4",
-    padding: 10,
-  },
-  profileContainer: {
-    position: "absolute",
-    top: 33,
-    right: 20,
-  },
-  searchContainer: {
-    top: 35,
-    left: 10,
-  },
-  searchResult: {
-    flex: 1,
-    marginTop: 40,
-    paddingHorizontal: 10,
-  },
-});
+     
+    });
+    
+  
