@@ -4,6 +4,7 @@ import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
 import SearchResult from "@/components/searchResult";
 import React, { useEffect } from "react";
+import { useFonts } from "expo-font";
 import { Text, FlatList, Image, ScrollView , SafeAreaView} from "react-native";
 import { shuffle } from "lodash";
 import bookImage from '../../assets/images/Howl-s-Moving-Castle.jpg';
@@ -182,11 +183,12 @@ export default function StoreScreen() {
         paddingHorizontal: 10,
       },
       
-      header1: { fontSize: 40, fontWeight: "bold", marginBottom: 10 },
-      header2: { fontSize: 40, fontWeight: "bold", marginBottom: 10 },
-      header3: { fontSize: 40, fontWeight: "bold", marginBottom: 10 },
-      header4: { fontSize: 40, fontWeight: "bold", marginBottom: 10 },
-      header5: { fontSize: 40, fontWeight: "bold", marginBottom: 10 },
+      header1: { fontSize: 40, fontWeight: "bold", marginBottom: 10 ,fontFamily:"expo-font" },
+      header2: { fontSize: 40, fontWeight: "bold", marginBottom: 10 ,fontFamily:"expo-font"},
+      header3: { fontSize: 40, fontWeight: "bold", marginBottom: 10 ,fontFamily:"expo-font"},
+      header4: { fontSize: 40, fontWeight: "bold", marginBottom: 10 ,fontFamily:"expo-font"},
+      header5: { fontSize: 40, fontWeight: "bold", marginBottom: 10 ,fontFamily:"expo-font"},
+      
       
       
 
