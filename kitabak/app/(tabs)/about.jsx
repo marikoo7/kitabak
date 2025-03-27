@@ -1,10 +1,11 @@
-import { Text, View ,TextInput, StyleSheet, ScrollView } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Text, View, StyleSheet, ScrollView, Dimensions, Image } from "react-native";
 import { useState } from "react";
 import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
 import SearchResult from "@/components/searchResult";
-import { useFonts } from "expo-font";
+
+const { width } = Dimensions.get('window');
+
 export default function AboutScreen() {
   const [user, setUser] = useState({
     loggedIn: false,
@@ -14,38 +15,63 @@ export default function AboutScreen() {
   const [searchPerformed, setSearchPerformed] = useState(false);
 
   return (
-    
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.profileContainer}>
-              <ProfilePic uri={user.loggedIn ? user.profilePic : null} size={80} />
-            </View>
+        <ProfilePic uri={user.loggedIn ? user.profilePic : null} size={80} />
+      </View>
       
-            <View style={styles.searchContainer}>
-              <SearchBar onSearch={setBooks} setSearchPerformed={setSearchPerformed} />
-            </View>
+      <View style={styles.searchContainer}>
+        <SearchBar onSearch={setBooks} setSearchPerformed={setSearchPerformed} />
+      </View>
       
-            <View style={styles.searchResult}>
-              <SearchResult books={books} searchPerformed={searchPerformed} />
-            </View>
-      <Text style={styles.title}>Happy reading,</Text>
-      <Text style={styles.title}>with kitabak</Text>
-      <Text style={styles.paragraph}>Welcome to Kitabak, your personal digital library designed for seamless reading and book management. Inspired by the best in the industry, Kitabak offers an intuitive and immersive experience for book lovers, making it easy to discover, organize, and access your books on multiple devices, ensuring a continuous reading journey.
-      </Text>
-      <Text style={styles.title}>The Team Behind </Text>
-      <Text style={styles.title}>kitabak</Text>
-      <Text style={styles.paragraph}>
-      Our team includes Mariam Mahmoud, Mai Mohammed, Alaa Najah, Amira Haggag, Aya Aid, Nada Sameh, Rahma Mostafa,
-      and Salma Medhat working together to craft an innovative reading platform.</Text>
-      <Text style={styles.paragraph}>
-      Stay tuned for updates as we continue to enhance Kitabak with new features and improvements!
-      </Text>
+      {searchPerformed && (
+        <View style={styles.searchResult}>
+          <SearchResult books={books} searchPerformed={searchPerformed} />
+        </View>
+      )}
+
+      <View style={styles.contentContainer}>
+        <Image 
+          source={require('../../assets/images/photo_2025-03-22_05-01-06-removebg-preview.png')} // Replace with your actual logo path
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Happy Reading, With Kitabak</Text>
+          <Text style={styles.paragraph}>
+            Welcome to Kitabak, your personal digital library designed for seamless reading and book management. Inspired by the best in the industry, Kitabak offers an intuitive and immersive experience for book lovers, making it easy to discover, organize, and access your books on multiple devices, ensuring a continuous reading journey.
+          </Text>
+        </View>
+
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>The Team Behind Kitabak</Text>
+          <Text style={styles.paragraph}>
+            Our team includes Mariam Mahmoud, Mai Mohammed, Alaa Najah, Amira Haggag, Aya Aid, Nada Sameh, Rahma Mostafa, and Salma Medhat. Together, we're crafting an innovative reading platform that transforms how you experience books.
+          </Text>
+        </View>
+
+        <View style={styles.sectionContainer}>
+         <Text style={styles.sectionTitle}>Contact Us</Text>
+          <Text style={styles.paragraph}>
+            Can’t find the book you’re looking for? Reach out to us at{" "}
+            <Text style={{ fontWeight: "bold" }}>kitabak.team@gmail.com</Text>,  
+            and we’ll do our best to make it available as soon as possible!
+          </Text>
+        </View>
+
+        <Text style={styles.tagline}>
+          Stay tuned for exciting updates and new features!
+        </Text>
+      </View>
     </ScrollView>
   );
-};
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
+    backgroundColor: '#f4f6f5',
   },
   profileContainer: {
     position: "absolute",
@@ -57,22 +83,57 @@ const styles = StyleSheet.create({
     left: 10,
   },
   searchResult: {
-    flex: 1,
-    marginTop: 40,
-    paddingHorizontal: 10,
+    position: 'absolute', 
+    top: 90, 
+    left: 10,
+    right: 10,
+    zIndex: 10,
   },
-  title: {
-    fontSize: 30,
-    fontWeight: 'bold',
+  contentContainer: {
+    alignItems: 'center',
+    marginTop: 100,
+    paddingHorizontal: 20,
+  },
+  logo: {
+    width: 150,
+    height: 170,
     marginBottom: 20,
-    color:"#585047",
-    fontFamily:"expo-font",
+    marginTop: -30,
+  },
+  sectionContainer: {
+    width: "100%",
+    marginBottom: 30,
+    backgroundColor: "#e7e6df",
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },  
+  sectionTitle: {
+    fontSize: 24,
+    fontFamily: 'MalibuSunday',
+    fontWeight: 'bold',
+    color: '#585047',
+    marginBottom: 10,
+    textAlign: 'left',
   },
   paragraph: {
-    fontSize: 16,
-    marginBottom: 10,
-    color:"#7d7362",
-    fontFamily: 'Arial',
+    fontSize: 17,
+    color: '#b0ad9a',
+    textAlign: 'left',
+    lineHeight: 25,
   },
-})
-
+  tagline: {
+    fontSize: 18,
+    color: '#585047',
+    fontWeight: 'bold',
+    fontStyle: 'italic',
+    fontFamily: 'MalibuSunday',
+    textAlign: 'center',
+    marginTop: -5,
+    marginBottom: 30,
+  },
+});
