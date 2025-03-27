@@ -4,7 +4,7 @@ import { useState } from "react";
 import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
 import SearchResult from "@/components/searchResult";
-
+import { useFonts } from "expo-font";
 export default function AboutScreen() {
   const [user, setUser] = useState({
     loggedIn: false,
@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     color:"#585047",
+    fontFamily:"expo-font",
   },
   paragraph: {
     fontSize: 16,
