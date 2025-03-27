@@ -103,14 +103,7 @@ const styles = StyleSheet.create({
   sectionContainer: {
     width: '100%',
     marginBottom: 30,
-    backgroundColor: '#b0ad9a',
-    borderRadius: 15,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 15,
   },
   sectionTitle: {
     fontSize: 24,
@@ -122,7 +115,7 @@ const styles = StyleSheet.create({
   },
   paragraph: {
     fontSize: 17,
-    color: '#f6f6f4',
+    color: '#b0ad9a',
     textAlign: 'left',
     lineHeight: 25,
   },
