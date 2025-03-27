@@ -175,7 +175,7 @@ export default function StoreScreen() {
         right: 20,
       },
       searchContainer: {
-        top: 35,
+        top: 45,
         left: 10,
       },
       searchResult: {
