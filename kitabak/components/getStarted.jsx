@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     width: width * 0.6, 
     height: height * 0.3, 
     marginBottom: height * 0.04, 
-    marginLeft: 29,  // to center the image horizontally on iOS
+    marginLeft: 29, 
   },
 
   image: { 

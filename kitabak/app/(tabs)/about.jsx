@@ -103,10 +103,10 @@ const styles = StyleSheet.create({
   sectionContainer: {
     width: '100%',
     marginBottom: 30,
-    padding: 15,
+    padding: 10,
   },
   sectionTitle: {
-    fontSize: 24,
+    fontSize: 27,
     fontFamily: 'MalibuSunday',
     fontWeight: 'bold',
     color: '#585047',
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   paragraph: {
-    fontSize: 17,
+    fontSize: 20,
     color: '#b0ad9a',
     textAlign: 'left',
     lineHeight: 25,
