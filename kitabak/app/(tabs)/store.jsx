@@ -1,4 +1,4 @@
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet,TouchableOpacity } from "react-native";
 import { useState } from "react";
 import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
@@ -17,6 +17,9 @@ import bookImage7 from '../../assets/images/aa.jpg';
 import bookImage8 from '../../assets/images/bb.jpg';
 import bookImage9 from '../../assets/images/cc.jpg';
 import bookImage10 from '../../assets/images/dd.jpg';
+import { useRouter } from "expo-router";
+
+
 
 export default function StoreScreen() {
   
@@ -28,11 +31,12 @@ export default function StoreScreen() {
   const [books, setBooks] = useState([]);
   const [books1, setBooks1] = useState([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
+  const router = useRouter();
   useEffect(() => {
       const bookData = [
-      { id: "1", title: "Howl’s Moving Castle", author: "Diana Wynne Jones", image: bookImage, category: "Fantasy" },
+      { id: "L2LYCeR3wyJe3N2nsYOL", title: "Howl’s Moving Castle", author: "Diana Wynne Jones", image: bookImage, category: "Fantasy" },
       { id: "2", title: "The Age of Doubt", author: "Pak Kyongni", image: bookImage4, category: "Fictional" },
-      { id: "3", title: "1984", author: "George Orwell", image: bookImage6, category: "Fictional" },
+      { id: "kmUDd2fTGEkOQ9KtIwSW", title: "1984", author: "George Orwell", image: bookImage6, category: "Fictional" },
       { id: "4", title: "Brave New World", author: "Aldous Huxley",  image: bookImage2, category: "Historical" },
       { id: "5", title: "Non-Fiction Example", author: "Author Name",image: bookImage3, category: "Non-fictional" },
       { id: "6", title: "Another Fantasy Book", author: "Another Author", image: bookImage7, category: "Fantasy" },
@@ -75,6 +79,9 @@ export default function StoreScreen() {
             keyExtractor={(item) => item.id}
             horizontal showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => (
+              <TouchableOpacity
+      onPress={() => router.push(`/book/${item.id}`)}
+    >
               <View style={styles.bookContainer}>
                 <View style={styles.excontainer}>
                 <Image source={ item.image } style={styles.bookImage} />
@@ -86,6 +93,7 @@ export default function StoreScreen() {
                 </View>
                 
               </View>
+              </TouchableOpacity>
             )}
           />
       
