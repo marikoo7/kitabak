@@ -3,7 +3,6 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from "rea
 const { width, height } = Dimensions.get("window");
 
 export default function GetStarted({ onSignUp, onLogin }) {
-  console.log("GetStarted screen is rendering!"); 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Let's get started!</Text>

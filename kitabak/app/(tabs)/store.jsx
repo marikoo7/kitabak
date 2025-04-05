@@ -1,4 +1,5 @@
 import { View, StyleSheet,TouchableOpacity } from "react-native";
+import { onAuthStateChanged } from "firebase/auth";
 import { useState } from "react";
 import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
@@ -31,22 +32,25 @@ export default function StoreScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchUserProfilePic = () => {
-      const user = auth.currentUser;
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
         const userDocRef = doc(db, "users", user.uid);
-        const unsubscribe = onSnapshot(userDocRef, (userDoc) => {
+        const unsubscribeDoc = onSnapshot(userDocRef, (userDoc) => {
           if (userDoc.exists()) {
             const userData = userDoc.data();
             setProfilePicUri(userData.profilePic);
           }
         });
-
-        return () => unsubscribe();
+  
+        // Clean up Firestore listener when user changes/logs out
+        return () => unsubscribeDoc();
+      } else {
+        // User logged out
+        setProfilePicUri(null);
       }
-    };
-
-    fetchUserProfilePic();
+    });
+  
+    return () => unsubscribeAuth();
   }, []);
 
   useEffect(() => {

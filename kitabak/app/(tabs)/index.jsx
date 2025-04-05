@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { doc, onSnapshot } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../../kitabak-server/firebaseConfig"; 
 import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
@@ -12,23 +13,26 @@ export default function HomeScreen() {
   const [profilePicUri, setProfilePicUri] = useState(null);
 
   useEffect(() => {
-    const fetchUserProfilePic = () => {
-      const user = auth.currentUser;
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
         const userDocRef = doc(db, "users", user.uid);
-        const unsubscribe = onSnapshot(userDocRef, (userDoc) => {
+        const unsubscribeDoc = onSnapshot(userDocRef, (userDoc) => {
           if (userDoc.exists()) {
             const userData = userDoc.data();
             setProfilePicUri(userData.profilePic);
           }
         });
 
-        return () => unsubscribe();
+        // Clean up Firestore listener when user changes/logs out
+        return () => unsubscribeDoc();
+      } else {
+        // User logged out
+        setProfilePicUri(null);
       }
-    };
+    });
 
-    fetchUserProfilePic();
-  }, []); 
+    return () => unsubscribeAuth();
+  }, []);
 
   return (
     <View style={styles.container}>
