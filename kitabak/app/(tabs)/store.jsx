@@ -4,7 +4,8 @@ import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
 import SearchResult from "@/components/searchResult";
 import React, { useEffect } from "react";
-import { useFonts } from "expo-font";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db, auth } from "../../kitabak-server/firebaseConfig"; 
 import { Text, FlatList, Image, ScrollView , SafeAreaView} from "react-native";
 import { shuffle } from "lodash";
 import bookImage from '../../assets/images/Howl-s-Moving-Castle.jpg';
@@ -22,16 +23,32 @@ import { useRouter } from "expo-router";
 
 
 export default function StoreScreen() {
-  
-  const [user, setUser] = useState({
-    loggedIn: false,
-    profilePic: "https://example.com/user-profile.jpg",
-  });
   const [bookss, setBookss] = useState([]);
   const [books, setBooks] = useState([]);
   const [books1, setBooks1] = useState([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
+  const [profilePicUri, setProfilePicUri] = useState(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchUserProfilePic = () => {
+      const user = auth.currentUser;
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        const unsubscribe = onSnapshot(userDocRef, (userDoc) => {
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setProfilePicUri(userData.profilePic);
+          }
+        });
+
+        return () => unsubscribe();
+      }
+    };
+
+    fetchUserProfilePic();
+  }, []);
+
   useEffect(() => {
       const bookData = [
       { id: "L2LYCeR3wyJe3N2nsYOL", title: "Howl’s Moving Castle", author: "Diana Wynne Jones", image: bookImage, category: "Fantasy" },
@@ -62,7 +79,7 @@ export default function StoreScreen() {
     <SafeAreaView style={{ flex:1}}>
       
           <View style={styles.profileContainer}>
-              <ProfilePic uri={user.loggedIn ? user.profilePic : null} size={80} />
+               <ProfilePic uri={profilePicUri} size={80} />
             </View>
       
             <View style={styles.searchContainer}>

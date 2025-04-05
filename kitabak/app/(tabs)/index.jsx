@@ -1,22 +1,39 @@
+import { useState, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
-import { useState } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db, auth } from "../../kitabak-server/firebaseConfig"; 
 import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
 import SearchResult from "@/components/searchResult";
 
 export default function HomeScreen() {
-  const [user, setUser] = useState({
-    loggedIn: false,
-    profilePic: "https://example.com/user-profile.jpg",
-  });
   const [books, setBooks] = useState([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
+  const [profilePicUri, setProfilePicUri] = useState(null);
+
+  useEffect(() => {
+    const fetchUserProfilePic = () => {
+      const user = auth.currentUser;
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        const unsubscribe = onSnapshot(userDocRef, (userDoc) => {
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setProfilePicUri(userData.profilePic);
+          }
+        });
+
+        return () => unsubscribe();
+      }
+    };
+
+    fetchUserProfilePic();
+  }, []); 
 
   return (
     <View style={styles.container}>
-      
       <View style={styles.profileContainer}>
-        <ProfilePic uri={user.loggedIn ? user.profilePic : null} size={80} />
+        <ProfilePic uri={profilePicUri} size={80} />
       </View>
 
       <View style={styles.searchContainer}>
@@ -26,7 +43,6 @@ export default function HomeScreen() {
       <View style={styles.searchResult}>
         <SearchResult books={books} searchPerformed={searchPerformed} />
       </View>
-
     </View>
   );
 }

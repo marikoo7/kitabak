@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { Text, View, StyleSheet, ScrollView, Dimensions, Image } from "react-native";
-import { useState } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db, auth } from "../../kitabak-server/firebaseConfig";
 import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
 import SearchResult from "@/components/searchResult";
@@ -7,17 +9,32 @@ import SearchResult from "@/components/searchResult";
 const { width } = Dimensions.get('window');
 
 export default function AboutScreen() {
-  const [user, setUser] = useState({
-    loggedIn: false,
-    profilePic: "https://example.com/user-profile.jpg",
-  });
   const [books, setBooks] = useState([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
+  const [profilePicUri, setProfilePicUri] = useState(null);
+
+  useEffect(() => {
+    const fetchUserProfilePic = () => {
+      const user = auth.currentUser;
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        const unsubscribe = onSnapshot(userDocRef, (userDoc) => {
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setProfilePicUri(userData.profilePic); // Set the profilePic URI from Firestore
+          }
+        });
+        return () => unsubscribe();
+      }
+    };
+
+    fetchUserProfilePic();
+  }, []);
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.profileContainer}>
-        <ProfilePic uri={user.loggedIn ? user.profilePic : null} size={80} />
+        <ProfilePic uri={profilePicUri} size={80} />
       </View>
       
       <View style={styles.searchContainer}>
@@ -32,7 +49,7 @@ export default function AboutScreen() {
 
       <View style={styles.contentContainer}>
         <Image 
-          source={require('../../assets/images/photo_2025-03-22_05-01-06-removebg-preview.png')} // Replace with your actual logo path
+          source={require('../../assets/images/photo_2025-03-22_05-01-06-removebg-preview.png')}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -75,16 +92,16 @@ const styles = StyleSheet.create({
   },
   profileContainer: {
     position: "absolute",
-    top: 23,
-    right: 10,
+    top: 33,
+    right: 20,
   },
   searchContainer: {
-    top: 35,
+    top: 45,
     left: 10,
   },
   searchResult: {
     position: 'absolute', 
-    top: 90, 
+    top: 100, 
     left: 10,
     right: 10,
     zIndex: 10,
@@ -123,7 +140,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#585047',
     fontWeight: 'bold',
-    fontStyle: 'italic',
     fontFamily: 'MalibuSunday',
     textAlign: 'center',
     marginTop: -5,

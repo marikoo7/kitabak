@@ -1,19 +1,13 @@
 import { Tabs } from "expo-router";
-import { useState } from "react";
 import { Image, View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFonts } from "expo-font";
 
 export default function TabLayout() {
-  // to know if the user is logged in or not
-  const [user, setUser] = useState({
-    loggedIn: false,
-    profilePic: "https://example.com/user-profile.jpg",
-  });
 
   const [fontsLoaded] = useFonts({
-    "MalibuSunday": require("../../assets/fonts/MalibuSundaySerif-gwMnE.ttf"), // Update with your font file name
+    "MalibuSunday": require("../../assets/fonts/MalibuSundaySerif-gwMnE.ttf"), // font for titles
   });
 
   return (
@@ -72,18 +66,7 @@ export default function TabLayout() {
             options={{
               title: "Profile",
               tabBarIcon: ({ color, focused }) =>
-                user.loggedIn && user.profilePic ? (
-                  <Image
-                    source={{ uri: user.profilePic }}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 14,
-                      borderWidth: focused ? 2 : 0,
-                      borderColor: focused ? color : "transparent",
-                    }}
-                  />
-                ) : (
+                (
                   <Ionicons
                     name={
                       focused ? "person-circle-sharp" : "person-circle-outline"

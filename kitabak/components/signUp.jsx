@@ -23,8 +23,7 @@ export default function SignUp({ onSwitchToLogin }) {
       await setDoc(doc(db, "users", user.uid), {
         username: username,
         email: user.email,
-        profilePic: "https://example.com/default-profile.jpg",
-        createdAt: new Date(),
+        profilePic: null,
       });
       
       alert("Account created successfully!");
