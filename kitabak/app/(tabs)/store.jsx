@@ -20,6 +20,11 @@ import bookImage8 from '../../assets/images/bb.jpg';
 import bookImage9 from '../../assets/images/cc.jpg';
 import bookImage10 from '../../assets/images/dd.jpg';
 import { useRouter } from "expo-router";
+import {
+  Button,
+  Dialog,
+  AirbnbRating
+  } from '@rneui/themed';
 
 
 
@@ -30,6 +35,16 @@ export default function StoreScreen() {
   const [searchPerformed, setSearchPerformed] = useState(false);
   const [profilePicUri, setProfilePicUri] = useState(null);
   const router = useRouter();
+  const [selectedBook, setSelectedBook] = useState(null);
+  const [visible1, setVisible1] = useState(false);
+  
+  
+  
+
+
+  const toggleDialog1 = () => {
+    setVisible1(!visible1);
+  };
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -101,7 +116,12 @@ export default function StoreScreen() {
             horizontal showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => (
               <TouchableOpacity
-      onPress={() => router.push(`/book/${item.id}`)}
+                  onPress={() => {
+                  setSelectedBook(item);
+                  toggleDialog1();
+        
+    }}
+      
     >
               <View style={styles.bookContainer}>
                 <View style={styles.excontainer}>
@@ -113,6 +133,7 @@ export default function StoreScreen() {
             
                 </View>
                 
+                
               </View>
               </TouchableOpacity>
             )}
@@ -120,6 +141,7 @@ export default function StoreScreen() {
       
           <Text style={styles.header2}>Non-Fictional </Text>
           <FlatList
+          
             data={books1}
             keyExtractor={(item) => item.id}
             horizontal showsHorizontalScrollIndicator={false}
@@ -136,6 +158,51 @@ export default function StoreScreen() {
               </View>
             )}
           />
+          <Dialog 
+          isVisible={visible1} 
+          onBackdropPress={toggleDialog1}
+          overlayStyle={{
+            borderRadius: 20,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 6,
+            elevation: 8,
+            backgroundColor: "#e7e6df"
+          }}
+          >
+          <View style={{
+              alignItems: 'center',
+              height: 500,
+              justifyContent: 'space-around',
+              }}
+              
+              >
+          <View style={styles.ratingContainer}>
+          <AirbnbRating 
+          isDisabled={true}
+          starStyle={{ color: '#585047' }}  
+          size={25}  
+          />
+        </View>
+      
+          <Image source={selectedBook?.image} style={styles.bookImageInDialog} />
+          <Text style={styles.bookTitleInDialog}>{selectedBook?.title}</Text>
+          <Text style={styles.bookAuthorInDialog}>by {selectedBook?.author}</Text>
+          <Text style={styles.bookCategory}>{selectedBook?.category}</Text>
+          
+
+    <Button
+      title="More Details"
+      onPress={() => {
+        toggleDialog1();
+        router.push(`/book/${selectedBook?.id}`);
+      }}
+      buttonStyle={{ marginTop: 15, backgroundColor: '#7d7362' }}
+    />
+  </View>
+</Dialog>
+
           <Text style={styles.header2}>Fantasy</Text>
           <FlatList
             data={bookss}
@@ -230,13 +297,43 @@ export default function StoreScreen() {
       },desc:{
         justifyContent:'center',
       },
+    
       bookImage: { width: 100, height: 150, borderRadius: 8 },
       bookTitle: { fontSize: 10, fontWeight: "bold", marginTop: 5 , color:"#7d7362"},
       bookAuthor: { fontSize: 10,color:'#b0ad9a'},
       
       
       bkP:{paddingRight:10, paddingTop:10},
-
+      bookImageInDialog: {
+        width: 220,
+        height: 280,
+        borderRadius: 8,
+        marginBottom: 15,
+        alignSelf: 'flex-start',
+        marginTop:-100
+      },
+      bookTitleInDialog: {
+        fontWeight: 'bold',
+        fontSize: 18,
+        marginBottom: 5,
+        color: '#7d7362',
+        marginTop: -200,  
+      },
+      bookAuthorInDialog: {
+        color: 'gray',
+        marginBottom: 10,
+      },
+      bookCategory: {
+        marginTop: 10,
+        marginBottom: 15,
+      },
+     
+      ratingContainer: {
+        alignItems: 'flex-end',
+       
+      },
+    
      
     });
+    
     
