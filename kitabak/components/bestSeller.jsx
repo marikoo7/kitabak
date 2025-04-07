@@ -26,7 +26,7 @@ const ExploreSection = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Explore</Text>
+      <Text style={styles.header}>All-Time Bestsellers</Text>
       <FlatList
         data={books}
         keyExtractor={(item) => item.id}
@@ -34,22 +34,12 @@ const ExploreSection = () => {
         showsHorizontalScrollIndicator={false}
         renderItem={({ item }) => (
           <View style={styles.bookContainer}>
-            <View style={styles.excontainer}>
+            <View style={styles.bestcontainer}>
               <Image source={{ uri: item.cover }} style={styles.bookImage} />
             </View>
             <View style={styles.desc}>
               <Text style={styles.bookTitle}>{item.title}</Text>
               <Text style={styles.bookAuthor}>{item.author}</Text>
-              <View style={styles.review}>
-                <View style={styles.bkP}>
-                  <Text style={styles.bookPages}>{item.page_count}</Text>
-                  <Text style={styles.pg}>pages</Text>
-                </View>
-                <View style={styles.bkP}>
-                  <Text style={styles.bookPages}>{item.reviews}</Text>
-                  <Text style={styles.pg}>reviews</Text>
-                </View>
-              </View>
             </View>
           </View>
         )}
@@ -59,33 +49,25 @@ const ExploreSection = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { padding: 1},
+  container: { padding: 1 },
   header: { fontSize: 30, marginBottom: 10,fontFamily: 'MalibuSunday' },
   bookContainer: {
-    width: 300,
+    width: 230,
     marginRight: 10,
     padding: 10,
-    backgroundColor: "#b0ad9a",
+    backgroundColor: 'transparent',
     borderRadius: 10,
-    flexDirection: "row",
     justifyContent: "center",
-
   },
-  excontainer: {
+  bestcontainer: {
     paddingRight: 20,
   },
   desc: {
     justifyContent: "center",
   },
-  bookImage: { width: 100, height: 150, borderRadius: 8 },
+  bookImage: { width: 200, height: 300, borderRadius: 8 },
   bookTitle: { fontSize: 17, fontWeight: "bold", marginTop: 5, color: "#7d7362" },
-  bookAuthor: { fontSize: 12, color: "#e7e6df" },
-  bookPages: { fontSize: 17, marginTop: 2, color: "#585047", fontWeight: "bold" },
-  pg: { color: "#e7e6df" },
-  bkP: { paddingRight: 10, paddingTop: 10 },
-  review: {
-    flexDirection: "row",
-  },
+  bookAuthor: { fontSize: 12, color: "#b0ad9a" },
 });
 
 export default ExploreSection;

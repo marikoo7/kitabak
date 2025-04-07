@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
 import { doc, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../../kitabak-server/firebaseConfig"; 
 import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
 import SearchResult from "@/components/searchResult";
+import ExploreSection from "@/components/explore";
+import BestSeller from "@/components/bestSeller";
+
 
 export default function HomeScreen() {
   const [books, setBooks] = useState([]);
@@ -36,6 +39,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.fixedContainer}>
       <View style={styles.profileContainer}>
         <ProfilePic uri={profilePicUri} size={80} />
       </View>
@@ -43,11 +47,31 @@ export default function HomeScreen() {
       <View style={styles.searchContainer}>
         <SearchBar onSearch={setBooks} setSearchPerformed={setSearchPerformed} />
       </View>
-
-      <View style={styles.searchResult}>
-        <SearchResult books={books} searchPerformed={searchPerformed} />
       </View>
-    </View>
+
+      {/* <View style={styles.searchResult}>
+        <SearchResult books={books} searchPerformed={searchPerformed} />
+      </View> */}
+      <ScrollView showsVerticalScrollIndicator={true}>
+
+      <ScrollView style={styles.scrollContent1} showsVerticalScrollIndicator={false}>
+        <View style={styles.searchResult}>
+          {searchPerformed ? (
+            <SearchResult books={books} searchPerformed={searchPerformed} />
+          ) : (
+            <ExploreSection />
+          )}
+        </View>
+      </ScrollView>
+
+      <ScrollView style={styles.scrollContent2} showsVerticalScrollIndicator={false}>
+
+         <BestSeller/>
+      </ScrollView>
+      </ScrollView>
+
+  </View>
+    
   );
 }
 
@@ -57,18 +81,40 @@ const styles = StyleSheet.create({
     backgroundColor: "#f6f6f4",
     padding: 10,
   },
+  fixedContainer:{
+    position:'absolute',
+    top:0,
+    right:0,
+    left:0,
+    zIndex:10,
+    height:110,
+    backgroundColor:'#f6f6f4'
+  },
   profileContainer: {
+    // flex:1,
     position: "absolute",
     top: 33,
     right: 20,
+    // zIndex:-1
+
   },
   searchContainer: {
-    top: 35,
+    top: 45,
     left: 10,
+    // position:'relative',
+    // zIndex:-1
+
   },
   searchResult: {
     flex: 1,
     marginTop: 40,
     paddingHorizontal: 10,
   },
+  scrollContent1: {
+    marginTop: 80,
+  }, 
+   scrollContent2: {
+    marginTop: 40,
+  },
+
 });
