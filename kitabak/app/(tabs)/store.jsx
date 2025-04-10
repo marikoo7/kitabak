@@ -1,14 +1,14 @@
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { onAuthStateChanged } from "firebase/auth";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
 import SearchResult from "@/components/searchResult";
-import { doc, onSnapshot, collection, getDocs } from "firebase/firestore";
+import { doc, onSnapshot, collection, getDocs ,setDoc ,deleteDoc} from "firebase/firestore";
 import { db, auth } from "../../kitabak-server/firebaseConfig";
 import { Text, FlatList, Image, ScrollView, SafeAreaView } from "react-native";
 import { useRouter } from "expo-router";
-import { Button, Dialog, AirbnbRating } from "@rneui/themed"; // npm install @rneui/themed @rneui/base
+import { Button, Dialog, AirbnbRating ,CheckBox } from "@rneui/themed"; // npm install @rneui/themed @rneui/base
 
 export default function StoreScreen() {
   const [allBooks, setAllBooks] = useState([]);
@@ -20,6 +20,34 @@ export default function StoreScreen() {
   const router = useRouter();
 
   const toggleDialog1 = () => setVisible1(!visible1);
+  const [activeTab, setActiveTab] = useState("description");
+  const [checked, setChecked] = React.useState(false);
+  const toggleCheckbox = () => setChecked(prevChecked => !prevChecked);
+
+
+    const handleAddToLibrary = async () => {
+      const user = auth.currentUser;
+      if (user && selectedBook) {
+        const bookRef = doc(db, "users", user.uid, "library", selectedBook.id);
+        await setDoc(bookRef, selectedBook);
+        toggleDialog1();
+        router.push("/library");
+      }
+    };
+
+    const handleToggleFavorite = async () => {
+      const user = auth.currentUser;
+      if (user && selectedBook) {
+        const favRef = doc(db, "users", user.uid, "favorites", selectedBook.id);
+        if (checked) {
+          await deleteDoc(favRef);
+        } else {
+          await setDoc(favRef, selectedBook);
+        }
+        setChecked(!checked);
+      }
+    };
+
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -171,23 +199,112 @@ export default function StoreScreen() {
           overlayStyle={{
             borderRadius: 20,
             backgroundColor: "#e7e6df",
+            
+        
           }}
         >
-          <View style={{ alignItems: "center", height: 500, justifyContent: "space-around" }}>
-            <AirbnbRating isDisabled={true} starStyle={{ color: "#585047" }} size={25} />
+          <View style ={{height :700 }}>
+          <View style={{ flexDirection: "row", marginBottom: 10 }}>
+            
             <Image source={{ uri: selectedBook?.cover }} style={styles.bookImageInDialog} />
+            <View style={{ flex: 1, marginLeft: 15, justifyContent: "space-around" }}>
+            <AirbnbRating
+            isDisabled={false}
+            // defaultRating={selectedBook?.rating || 0}
+            showRating={false}
+            starStyle={{ color: "#585047" }}
+            size={25}
+      />
             <Text style={styles.bookTitleInDialog}>{selectedBook?.title}</Text>
             <Text style={styles.bookAuthorInDialog}>by {selectedBook?.author}</Text>
+            <Text style={{color :"#7d7362"}}>Greners:</Text>
             <Text style={styles.bookCategory}>{selectedBook?.genres}</Text>
-
+            
+            <View style={{ flexDirection: "row" }}>
             <Button
-              title="More Details"
-              onPress={() => {
-                toggleDialog1();
-                router.push(`/book/${selectedBook?.id}`);
+              title="Add to library"
+              width='600'
+              onPress={() => {handleAddToLibrary;
+                router.push("/library")
               }}
-              buttonStyle={{ backgroundColor: "#7d7362" }}
+              buttonStyle={{ backgroundColor: "#7d7362" , paddingHorizontal: 100, }}
+              
             />
+            <CheckBox
+           checked={checked}
+           checkedIcon="heart"
+           uncheckedIcon="heart-o"
+           checkedColor="red"
+           uncheckedColor="#7d7362"
+           onPress={() =>{handleToggleFavorite;
+            setChecked(!checked);
+           }}
+           backgroundColor="#e7e6df"
+           
+           containerStyle={{
+            backgroundColor: "transparent",
+            borderWidth: 0,
+            padding: 0,
+            margin: 6,
+          }}
+           
+         />
+            </View>
+         
+         
+       
+          </View>
+          </View>
+          <View style={{ alignItems: "center", marginBottom: 10 }}>
+            <Text style={{color :'#7d7362'}}>Rate This Book</Text>
+      <AirbnbRating
+        
+        defaultRating={selectedBook?.rating || 0}
+        showRating={false}
+        starStyle={{ color: "#585047",}}
+        size={25}
+      />
+    </View>
+    
+    <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 20 }}>
+  <TouchableOpacity
+    onPress={() => setActiveTab("description")}
+    style={{
+      padding: 10,
+      borderBottomWidth: activeTab === "description" ? 2 : 0,
+      borderBottomColor: "#7d7362",
+      marginRight: 20,
+    }}
+  >
+    <Text style={{ color: "#7d7362", fontWeight: activeTab === "description" ? "bold" : "normal" }}>
+      Description
+    </Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    onPress={() => setActiveTab("reviews")}
+    style={{
+      padding: 10,
+      borderBottomWidth: activeTab === "reviews" ? 2 : 0,
+      borderBottomColor: "#7d7362",
+    }}
+  >
+    <Text style={{ color: "#7d7362", fontWeight: activeTab === "reviews" ? "bold" : "normal" }}>
+      Reviews
+    </Text>
+  </TouchableOpacity>
+</View>
+<View style={{ marginTop: 10 }}>
+      {activeTab === "description" ? (
+        <ScrollView>
+          <Text style={styles.bookdescription}>{selectedBook?.description}</Text>
+        </ScrollView>
+      ) : (
+        <ScrollView>
+          <Text style={styles.bookdescription}>No reviews yet.</Text>
+        </ScrollView>
+      )}
+    </View>
           </View>
         </Dialog>
       </ScrollView>
@@ -216,7 +333,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 20,
     color: "#7d7362",
-     fontFamily: 'MalibuSunday'
+     
   },
   bookContainer: {
     padding: 10,
@@ -224,8 +341,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   bookImage: {
-    width: 100,
-    height: 150,
+    width: 200,
+    height: 300,
     borderRadius: 8,
   },
   bookTitle: {
@@ -240,24 +357,31 @@ const styles = StyleSheet.create({
   },
   bookImageInDialog: {
     width: 220,
-    height: 280,
+    height: 330,
     borderRadius: 8,
-    marginBottom: 15,
-    marginTop: -100,
+   
+   
   },
   bookTitleInDialog: {
     fontWeight: "bold",
-    fontSize: 18,
+    fontFamily: 'MalibuSunday',
+    fontSize: 28,
     marginBottom: 5,
     color: "#7d7362",
-    marginTop: -200,
+    
   },
   bookAuthorInDialog: {
     color: "gray",
     marginBottom: 10,
   },
   bookCategory: {
+    fontFamily: 'MalibuSunday',
     marginTop: 10,
     marginBottom: 15,
+    color:'#b0ad9a'
   },
+  bookdescription:{
+    fontFamily: 'Arial',
+    color:'#b0ad9a'
+  }
 });
