@@ -8,6 +8,7 @@ import SearchBar from "@/components/searchBar";
 import SearchResult from "@/components/searchResult";
 import ExploreSection from "@/components/explore";
 import BestSeller from "@/components/bestSeller";
+import BookRead from "@/components/bookRead"
 
 
 export default function HomeScreen() {
@@ -68,7 +69,11 @@ export default function HomeScreen() {
 
          <BestSeller/>
       </ScrollView>
+      <View style={styles.bookRead}>
+          <BookRead/>
+      </View>
       </ScrollView>
+
 
   </View>
     
@@ -91,19 +96,14 @@ const styles = StyleSheet.create({
     backgroundColor:'#f6f6f4'
   },
   profileContainer: {
-    // flex:1,
     position: "absolute",
     top: 33,
     right: 20,
-    // zIndex:-1
 
   },
   searchContainer: {
     top: 45,
     left: 10,
-    // position:'relative',
-    // zIndex:-1
-
   },
   searchResult: {
     flex: 1,
@@ -114,6 +114,9 @@ const styles = StyleSheet.create({
     marginTop: 80,
   }, 
    scrollContent2: {
+    marginTop: 40,
+  }, 
+   bookRead: {
     marginTop: 40,
   },
 
