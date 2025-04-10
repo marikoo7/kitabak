@@ -1,74 +1,107 @@
-import { useState, useEffect } from "react";
-import { View, StyleSheet } from "react-native";
-import { doc, onSnapshot } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import React, { useEffect, useState } from "react";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { db, auth } from "../../kitabak-server/firebaseConfig";
-import ProfilePic from "@/components/profilePic";
-import SearchBar from "@/components/searchBar";
-import SearchResult from "@/components/searchResult";
+import { collection, getDocs } from "firebase/firestore";
+import { useRouter } from "expo-router";
+import { Button } from "@rneui/themed"; // إذا كنت تستخدم مكتبة @rneui
 
-export default function LibraryScreen() {
-  const [books, setBooks] = useState([]);
-  const [searchPerformed, setSearchPerformed] = useState(false);
-  const [profilePicUri, setProfilePicUri] = useState(null);
+const LibraryScreen = () => {
+  const [libraryBooks, setLibraryBooks] = useState([]);
+  const [favoriteBooks, setFavoriteBooks] = useState([]);
+  const [activeTab, setActiveTab] = useState("library"); // بدايةً مع تبويب المكتبة
+  const router = useRouter();
 
+  // تحميل الكتب من المكتبة أو المفضلة بناءً على التبويب النشط
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    const fetchBooks = async (collectionName) => {
+      const user = auth.currentUser;
       if (user) {
-        const userDocRef = doc(db, "users", user.uid);
-        const unsubscribeDoc = onSnapshot(userDocRef, (userDoc) => {
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setProfilePicUri(userData.profilePic);
-          }
-        });
-
-        // Clean up Firestore listener when user changes/logs out
-        return () => unsubscribeDoc();
-      } else {
-        // User logged out
-        setProfilePicUri(null);
+        const booksRef = collection(db, "users", user.uid, collectionName);
+        const querySnapshot = await getDocs(booksRef);
+        const booksArray = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        return booksArray;
       }
-    });
+    };
 
-    return () => unsubscribeAuth();
-  }, []);
+    if (activeTab === "library") {
+      fetchBooks("library").then(setLibraryBooks);
+    } else {
+      fetchBooks("favorites").then(setFavoriteBooks);
+    }
+  }, [activeTab]); // التحديث بناءً على التبويب النشط
 
   return (
-    <View style={styles.container}>
-      <View style={styles.profileContainer}>
-        <ProfilePic uri={profilePicUri} size={80} />
+    <View style={{ flex: 1 }}>
+      {/* تبويبات المكتبة والمفضلة */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "library" && styles.activeTab]}
+          onPress={() => setActiveTab("library")}
+        >
+          <Text style={styles.tabText}>Library</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "favorites" && styles.activeTab]}
+          onPress={() => setActiveTab("favorites")}
+        >
+          <Text style={styles.tabText}>Favorites</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.searchContainer}>
-        <SearchBar onSearch={setBooks} setSearchPerformed={setSearchPerformed} />
-      </View>
-
-      <View style={styles.searchResult}>
-        <SearchResult books={books} searchPerformed={searchPerformed} />
-      </View>
+      {/* عرض الكتب بناءً على التبويب النشط */}
+      <FlatList
+        data={activeTab === "library" ? libraryBooks : favoriteBooks}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.bookContainer}>
+            <Text style={styles.bookTitle}>{item.title}</Text>
+            <Text style={styles.bookAuthor}>{item.author}</Text>
+            <Button
+              title="Go to Details"
+              onPress={() => router.push(`/bookDetails/${item.id}`)} // توجيه المستخدم إلى تفاصيل الكتاب
+            />
+          </View>
+        )}
+      />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f6f6f4",
+  tabContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginVertical: 10,
+  },
+  tab: {
     padding: 10,
   },
-  profileContainer: {
-    position: "absolute",
-    top: 33,
-    right: 20,
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: "#7d7362", // اللون المميز للتبويب النشط
   },
-  searchContainer: {
-    top: 35,
-    left: 10,
+  tabText: {
+    fontSize: 16,
+    color: "#7d7362",
   },
-  searchResult: {
-    flex: 1,
-    marginTop: 40,
-    paddingHorizontal: 10,
+  bookContainer: {
+    marginVertical: 10,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: "#f5f5f5",
+  },
+  bookTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#7d7362",
+  },
+  bookAuthor: {
+    fontSize: 14,
+    color: "#7d7362",
   },
 });
+
+export default LibraryScreen;
