@@ -217,8 +217,8 @@ export default function StoreScreen() {
       />
             <Text style={styles.bookTitleInDialog}>{selectedBook?.title}</Text>
             <Text style={styles.bookAuthorInDialog}>by {selectedBook?.author}</Text>
-            <Text style={{color :"#7d7362"}}>Greners:</Text>
-            <Text style={styles.bookCategory}>{selectedBook?.genres}</Text>
+{/*             <Text style={{color :"#7d7362"}}>Greners:</Text>
+            <Text style={styles.bookCategory}>{selectedBook?.genres}</Text> */}
             
             <View style={{ flexDirection: "row" }}>
             <Button
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 20,
     color: "#7d7362",
-     
+    fontFamily: 'MalibuSunday',
   },
   bookContainer: {
     padding: 10,
