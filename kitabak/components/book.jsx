@@ -75,6 +75,31 @@ export default function BookComponent({ book, visible, onClose }) {
     <TouchableOpacity onPress={handleAddToLibrary} style={styles.addToLibraryBtn}>
     <Text style={styles.addToLibraryText}>Add to library</Text>
   </TouchableOpacity>
+
+ < TouchableOpacity
+  onPress={() => {
+    if (book?. bookpdf) {
+      router.push({
+        pathname: "/bookreading",
+        params: { url: book.bookpdf }
+      });
+      onClose(); 
+    } else {
+      alert("رابط الكتاب غير متاح");
+    }
+  }}
+  style={{
+      backgroundColor: "#4CAF50",
+      paddingVertical: 8,
+      paddingHorizontal: 15,
+      borderRadius: 20,
+      justifyContent: "center",
+      alignItems: "center",
+      marginLeft: 10,
+    }}
+  >
+    <Text style={{ color: "#fff", fontWeight: "bold" }}>Read</Text>
+  </TouchableOpacity>
       
      <TouchableOpacity onPress={() => handletoggleFavorite(book)} style={styles.favoriteBtn}>
                        <Icon
