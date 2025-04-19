@@ -76,7 +76,7 @@ const ExploreSection = () => {
               <Image source={{ uri: item.cover }} style={styles.bookImage} />
             </View>
             <View style={styles.desc}>
-              <Text style={styles.bookTitle}>{item.title}</Text>
+            <Text style={styles.bookTitle} numberOfLines={2} ellipsizeMode="tail">{item.title}</Text>
               <Text style={styles.bookAuthor}>{item.author}</Text>
               <View style={styles.review}>
                 <View style={styles.bkP}>
@@ -164,8 +164,15 @@ const styles = StyleSheet.create({
   excontainer: { paddingRight: 20 },
   desc: { justifyContent: "center" },
   bookImage: { width: 100, height: 150, borderRadius: 8 },
-  bookTitle: { fontSize: 17, fontWeight: "bold", marginTop: 5, color: "#7d7362" },
-  bookAuthor: { fontSize: 12, color: "#e7e6df" },
+  bookTitle: {
+    fontSize: 17,
+    fontWeight: "bold",
+    marginTop: 5,
+    color: "#7d7362",
+    maxWidth: 170,
+    lineHeight: 20, 
+  },
+  bookAuthor: { fontSize: 12, color: "#e7e6df", marginTop:5 },
   bookPages: { fontSize: 17, marginTop: 2, color: "#585047", fontWeight: "bold" },
   pg: { color: "#e7e6df" },
   bkP: { paddingRight: 10, paddingTop: 10 },

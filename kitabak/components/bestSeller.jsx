@@ -18,7 +18,7 @@ const ExploreSection = () => {
         const booksData = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        }));
+        })).filter((book) => book.bestseller === true);
         setBooks(shuffle(booksData));
       } catch (error) {
         console.error("Error fetching books:", error);
@@ -62,7 +62,7 @@ const ExploreSection = () => {
               <Image source={{ uri: item.cover }} style={styles.bookImage} />
             </View>
             <View style={styles.desc}>
-              <Text style={styles.bookTitle}>{item.title}</Text>
+               <Text style={styles.bookTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</Text>
               <Text style={styles.bookAuthor}>{item.author}</Text>
             </View>
           </TouchableOpacity>
@@ -137,7 +137,14 @@ const styles = StyleSheet.create({
   bestcontainer: { paddingRight: 20 },
   desc: { justifyContent: "center" },
   bookImage: { width: 200, height: 300, borderRadius: 8 },
-  bookTitle: { fontSize: 17, fontWeight: "bold", marginTop: 5, color: "#7d7362" },
+  bookTitle: {
+    fontSize: 17,
+    fontWeight: "bold",
+    marginTop: 5,
+    color: "#7d7362",
+    maxWidth: 170,
+    lineHeight: 20, 
+  },
   bookAuthor: { fontSize: 12, color: "#b0ad9a" },
 
   // Modal styles
