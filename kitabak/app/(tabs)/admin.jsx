@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View,Text,ScrollView,StyleSheet,TouchableOpacity,TextInput,Image,Alert,Modal,ActivityIndicator,KeyboardAvoidingView,Platform } from 'react-native';
-import { getFirestore, collection, getDocs, doc, addDoc, updateDoc} from 'firebase/firestore';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Image, Modal, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { getFirestore, collection, getDocs, doc, addDoc, updateDoc, deleteDoc} from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import app from '../../kitabak-server/firebaseConfig';
 
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 export default function AdminDashboard() {
   const [books, setBooks] = useState([]);
@@ -12,7 +14,6 @@ export default function AdminDashboard() {
   const [editingBook, setEditingBook] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [description, setDescription] = useState('');
@@ -86,16 +87,16 @@ export default function AdminDashboard() {
         bookpdf: bookpdf.trim(),
         page_count: parseInt(pageCount) || 0,
         bestseller,
-        reviews: 0, // New books start with 0 reviews
+        reviews: 0,
       };
 
       if (editingBook) {
-        // Update existing book
+        // update a book
         const bookRef = doc(db, 'books', editingBook.id);
         await updateDoc(bookRef, bookData);
         Alert.alert('Success', 'Book updated successfully');
       } else {
-        // Add new book
+        // add new book
         await addDoc(collection(db, 'books'), bookData);
         Alert.alert('Success', 'Book added successfully');
       }
@@ -106,6 +107,18 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error saving book:', error);
       Alert.alert('Error', 'Failed to save book');
+    }
+  };
+
+  const handleDeleteBook = async (bookId) => { 
+    try {
+      console.log(`delete book ID: ${bookId}`);
+      const bookRef = doc(db, 'books', bookId);
+      await deleteDoc(bookRef);
+      console.log('deleted successfully');
+      fetchBooks();
+    } catch (error) {
+      console.error('delete error:', error);
     }
   };
 
@@ -123,13 +136,13 @@ export default function AdminDashboard() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Admin Dashboard</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => openModal()}>
-          <Text style={styles.addButtonText}>+ Add Book</Text>
+          <Text style={styles.addButtonText}>+ Add Book </Text>
         </TouchableOpacity>
       </View>
 
       <TextInput
         style={styles.searchInput}
-        placeholder="Search books..."
+        placeholder="Search books by name, author, or genre..."
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
@@ -137,20 +150,26 @@ export default function AdminDashboard() {
       {loading ? (
         <ActivityIndicator size="large" color="#7d7362" style={styles.loader} />
       ) : (
-        <ScrollView style={styles.bookList}>
+        <ScrollView style={styles.bookList} showsVerticalScrollIndicator={false}>
           {filteredBooks.map((book) => (
             <View key={book.id} style={styles.bookItem}>
               <Image source={{ uri: book.cover }} style={styles.bookCover} />
               <View style={styles.bookInfo}>
                 <Text style={styles.bookTitle}>{book.title}</Text>
                 <Text style={styles.bookAuthor}>by {book.author}</Text>
-                {book.bestseller && <Text style={styles.bestseller}>Bestseller</Text>}
+                {book.bestseller && <Text style={styles.bestseller}>Best seller</Text>}
                 <View style={styles.actions}>
                   <TouchableOpacity
                     style={[styles.actionButton, styles.editButton]}
                     onPress={() => openModal(book)}
                   >
                     <Text style={styles.actionButtonText}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.deleteButton]}
+                    onPress={() => handleDeleteBook(book.id)}
+                  >
+                    <Text style={styles.actionButtonText}>Delete</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -170,7 +189,7 @@ export default function AdminDashboard() {
           style={styles.modalContainer}
         >
           <View style={styles.modalContent}>
-            <ScrollView>
+            <ScrollView showsVerticalScrollIndicator ={false}>
               <Text style={styles.modalTitle}>
                 {editingBook ? 'Edit Book' : 'Add New Book'}
               </Text>
@@ -232,7 +251,7 @@ export default function AdminDashboard() {
                 onPress={() => setBestseller(!bestseller)}
               >
                 <View style={[styles.checkbox, bestseller && styles.checkboxChecked]} />
-                <Text style={styles.checkboxLabel}>Bestseller</Text>
+                <Text style={styles.checkboxLabel}>Best seller</Text>
               </TouchableOpacity>
 
               <View style={styles.modalButtons}>
@@ -262,39 +281,40 @@ export default function AdminDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f6f6f4',
+    backgroundColor: '#f4f6f5',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+    marginTop: 20,
   },
   headerTitle: {
     fontSize: 24,
+    fontFamily: "MalibuSunday",
     fontWeight: 'bold',
-    color: '#333',
+    color: '#585047',
   },
   addButton: {
-    backgroundColor: '#7d7362',
+    backgroundColor: '#585047',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
   },
   addButtonText: {
-    color: '#fff',
+    color: '#f6f6f4',
     fontWeight: 'bold',
   },
   searchInput: {
     margin: 16,
-    padding: 12,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    padding: 16,
+    backgroundColor: '#e7e6df',
+    borderRadius: 20,
+    color: '#b0ad9a',
+    fontSize: 17,
   },
   loader: {
     marginTop: 20,
@@ -305,7 +325,7 @@ const styles = StyleSheet.create({
   },
   bookItem: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: '#b0ad9a',
     borderRadius: 8,
     marginBottom: 16,
     overflow: 'hidden',
@@ -322,20 +342,21 @@ const styles = StyleSheet.create({
   bookInfo: {
     flex: 1,
     padding: 12,
+    justifyContent: 'center',
   },
   bookTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#585047',
   },
   bookAuthor: {
     fontSize: 14,
-    color: '#666',
+    color: '#e7e6df',
     marginTop: 4,
   },
   bestseller: {
     fontSize: 12,
-    color: '#4CAF50',
+    color: '#2d502f',
     fontWeight: 'bold',
     marginTop: 4,
   },
@@ -352,8 +373,11 @@ const styles = StyleSheet.create({
   editButton: {
     backgroundColor: '#7d7362',
   },
+  deleteButton: {
+    backgroundColor: '#e74c3c', 
+  },
   actionButtonText: {
-    color: '#fff',
+    color: '#f6f6f4',
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -364,7 +388,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: '#f6f6f4',
     borderRadius: 8,
     padding: 20,
     width: '90%',
@@ -373,16 +397,19 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
+    fontFamily: "MalibuSunday",
     marginBottom: 20,
     textAlign: 'center',
+    color: '#585047',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#e7e6df',
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
     fontSize: 16,
+    color: '#7d7362',
   },
   textArea: {
     height: 100,
@@ -406,6 +433,8 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     fontSize: 16,
+    color:'#2d502f',
+    fontWeight: 'bold',
   },
   modalButtons: {
     flexDirection: 'row',
@@ -420,13 +449,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   cancelButton: {
-    backgroundColor: '#95a5a6',
+    backgroundColor: '#e74c3c',
   },
   submitButton: {
     backgroundColor: '#7d7362',
   },
   buttonText: {
-    color: '#fff',
+    color: '#f6f6f4',
     fontSize: 16,
     fontWeight: 'bold',
   },
