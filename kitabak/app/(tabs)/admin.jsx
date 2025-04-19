@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Image, Modal, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Image, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, Alert} from 'react-native';
 import { getFirestore, collection, getDocs, doc, addDoc, updateDoc, deleteDoc} from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import app from '../../kitabak-server/firebaseConfig';
