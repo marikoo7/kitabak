@@ -1,41 +1,100 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Dimensions,
+} from "react-native";
 import { db, auth } from "../../kitabak-server/firebaseConfig";
-import { collection, getDocs } from "firebase/firestore";
-import { useRouter } from "expo-router";
-import { Button } from "@rneui/themed"; // إذا كنت تستخدم مكتبة @rneui
+import { collection, getDocs, setDoc, deleteDoc, doc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import ProfilePic from "@/components/profilePic";
+import Icon from "react-native-vector-icons/FontAwesome";
 
-const LibraryScreen = () => {
+const screenWidth = Dimensions.get("window").width;
+
+export default function LibraryScreen() {
   const [libraryBooks, setLibraryBooks] = useState([]);
   const [favoriteBooks, setFavoriteBooks] = useState([]);
-  const [activeTab, setActiveTab] = useState("library"); // بدايةً مع تبويب المكتبة
-  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("library");
+  const [userUID, setUserUID] = useState(null);
+  const [search, setSearch] = useState("");
+  const [profilePicUri, setProfilePicUri] = useState(null);
 
-  // تحميل الكتب من المكتبة أو المفضلة بناءً على التبويب النشط
   useEffect(() => {
-    const fetchBooks = async (collectionName) => {
-      const user = auth.currentUser;
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const booksRef = collection(db, "users", user.uid, collectionName);
-        const querySnapshot = await getDocs(booksRef);
-        const booksArray = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        return booksArray;
+        setUserUID(user.uid);
+        fetchBooks(user.uid);
+        setProfilePicUri(user.photoURL);
+      } else {
+        setUserUID(null);
       }
-    };
+    });
 
-    if (activeTab === "library") {
-      fetchBooks("library").then(setLibraryBooks);
+    return () => unsubscribe();
+  }, [activeTab]);
+
+  const fetchBooks = async (uid) => {
+    const booksRef = collection(db, "users", uid, "library");
+    const favsRef = collection(db, "users", uid, "favorites");
+
+    const booksSnapshot = await getDocs(booksRef);
+    const favsSnapshot = await getDocs(favsRef);
+
+    const books = booksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const favs = favsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    setLibraryBooks(books);
+    setFavoriteBooks(favs);
+  };
+
+  const toggleFavorite = async (book) => {
+    if (!userUID) return;
+    const favRef = doc(db, "users", userUID, "favorites", book.id);
+    const isFav = favoriteBooks.some(b => b.id === book.id);
+
+    if (isFav) {
+      await deleteDoc(favRef);
+      setFavoriteBooks(favoriteBooks.filter(b => b.id !== book.id));
     } else {
-      fetchBooks("favorites").then(setFavoriteBooks);
+      await setDoc(favRef, book);
+      setFavoriteBooks([...favoriteBooks, book]);
     }
-  }, [activeTab]); // التحديث بناءً على التبويب النشط
+  };
+
+  const isFavorite = (bookId) => {
+    return favoriteBooks.some(b => b.id === bookId);
+  };
+
+  const booksToDisplay =
+    activeTab === "library"
+      ? libraryBooks.filter((book) =>
+          book.title?.toLowerCase().includes(search.toLowerCase())
+        )
+      : favoriteBooks.filter((book) =>
+          book.title?.toLowerCase().includes(search.toLowerCase())
+        );
 
   return (
-    <View style={{ flex: 1 }}>
-      {/* تبويبات المكتبة والمفضلة */}
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+      <View style={styles.topContainer}>
+        <TextInput
+          placeholder="Search books"
+          value={search}
+          onChangeText={setSearch}
+          style={styles.searchInput}
+        />
+        <ProfilePic uri={profilePicUri} size={40} />
+      </View>
+
+      {/* Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === "library" && styles.activeTab]}
@@ -47,61 +106,107 @@ const LibraryScreen = () => {
           style={[styles.tab, activeTab === "favorites" && styles.activeTab]}
           onPress={() => setActiveTab("favorites")}
         >
-          <Text style={styles.tabText}>Favorites</Text>
+          <Text style={styles.tabText}>favorites</Text>
         </TouchableOpacity>
       </View>
 
-      {/* عرض الكتب بناءً على التبويب النشط */}
+      {/* Books Grid */}
       <FlatList
-        data={activeTab === "library" ? libraryBooks : favoriteBooks}
+        data={booksToDisplay}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.bookContainer}>
-            <Text style={styles.bookTitle}>{item.title}</Text>
-            <Text style={styles.bookAuthor}>{item.author}</Text>
-            <Button
-              title="Go to Details"
-              onPress={() => router.push(`/bookDetails/${item.id}`)} // توجيه المستخدم إلى تفاصيل الكتاب
-            />
-          </View>
-        )}
+        numColumns={3}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.bookListContainer}
+        renderItem={({ item }) => {
+          const percent =
+            item.page_count && item.pages_read
+              ? Math.floor((item.pages_read / item.page_count) * 100)
+              : 0;
+
+          return (
+            <View style={styles.bookCardGrid}>
+              <Image
+                source={{ uri: item.image || item.cover || "https://via.placeholder.com/140x210" }}
+                style={styles.bookImageGrid}
+              />
+              <View style={styles.bookFooter}>
+                <Text style={styles.progressText}>
+                  {percent === 100 ? "Finished" : `${percent}%`}
+                </Text>
+                <TouchableOpacity onPress={() => toggleFavorite(item)}>
+                  <Icon
+                    name={isFavorite(item.id) ? "heart" : "heart-o"}
+                    color={isFavorite(item.id) ? "red" : "#7d7362"}
+                    size={16}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          );
+        }}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
-};
+}
 
 const styles = StyleSheet.create({
+  topContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 10,
+    paddingVertical: 15,
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    backgroundColor: "#f0eee9",
+    borderRadius: 25,
+    paddingHorizontal: 20,
+    marginRight: 10,
+    color: "#7d7362",
+  },
   tabContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginVertical: 10,
+    marginBottom: 10,
   },
   tab: {
     padding: 10,
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: "#7d7362", // اللون المميز للتبويب النشط
+    borderBottomColor: "#7d7362",
   },
   tabText: {
     fontSize: 16,
     color: "#7d7362",
   },
-  bookContainer: {
-    marginVertical: 10,
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: "#f5f5f5",
+  bookListContainer: {
+    paddingHorizontal: 10,
+    paddingBottom: 20,
   },
-  bookTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#7d7362",
+  bookCardGrid: {
+    flexBasis: "30%",
+    margin: 6,
+    alignItems: "center",
   },
-  bookAuthor: {
-    fontSize: 14,
+  bookImageGrid: {
+    width: screenWidth / 3.5,
+    height: 160,
+    borderRadius: 10,
+    resizeMode: "cover",
+  },
+  bookFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "90%",
+    paddingHorizontal: 6,
+    marginTop: 4,
+  },
+  progressText: {
+    fontSize: 12,
     color: "#7d7362",
   },
 });
-
-export default LibraryScreen;
