@@ -5,10 +5,13 @@ import { db, auth } from "../kitabak-server/firebaseConfig";
 import { Text,  Image, ScrollView, } from "react-native";
 import { useRouter } from "expo-router";
 import { Button, AirbnbRating, CheckBox } from "@rneui/themed"; // npm install @rneui/themed @rneui/base
-
+import { useWindowDimensions } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome"; 
 
 export default function BookComponent({ book, visible, onClose }) {
+
+  const { width } = useWindowDimensions();
+const isSmallScreen = width < 500; // ممكن تغيرها حسب تجربتك
   
   const toggleModal = useCallback(() => {
     onClose();
@@ -53,7 +56,7 @@ export default function BookComponent({ book, visible, onClose }) {
     
         <Modal
           visible={visible}
-          animationType="slide"
+          animationType="fade"
           transparent={true}
           onRequestClose={toggleModal}
            presentationStyle="overFullScreen"
@@ -66,10 +69,15 @@ export default function BookComponent({ book, visible, onClose }) {
 
           >
             <View style={styles.modalContent}>
-              <View style={{ flexDirection: "row", }}>
-              <View style={{ alignItems: "center" }}>
-    <Image source={{ uri: book?.cover }} style={styles.bookImageInDialog} />
+            <View style={{ 
+  flexDirection: isSmallScreen ? "column" : "row", 
+  alignItems: isSmallScreen ? "center" : "flex-start"
+}}>
 
+              <View style={{ alignItems: "center" }}>
+                
+    <Image source={{ uri: book?.cover }} style={styles.bookImageInDialog} />
+    
     
     <View style={{ flexDirection: "row", marginTop: 10 ,marginRight:10}}>
     <TouchableOpacity onPress={handleAddToLibrary} style={styles.addToLibraryBtn}>
