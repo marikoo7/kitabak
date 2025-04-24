@@ -40,15 +40,20 @@ const BooksReadSection = () => {
       <Text style={styles.title} numberOfLines={2}>Books Read This Year</Text>
 
       <View style={{ width: "100%", height: cardHeight + 20 }}>
-        <FlatList
-          horizontal
-          data={booksToRender}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 10 }}
-        />
+          <FlatList
+            horizontal
+            data={booksToRender}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id.toString()}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: 10,
+              justifyContent: booksToRender.length <= 3 ? "center" : "flex-start",
+              flexGrow: 1,
+            }}
+          />
       </View>
+
 
       <View style={styles.goalRow}>
         <Text style={styles.goalText}>

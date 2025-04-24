@@ -39,7 +39,7 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <ScrollView style={styles.container}  showsVerticalScrollIndicator={true}>
+    <ScrollView style={styles.container}  showsVerticalScrollIndicator={false}>
       <View style={styles.profileContainer}>
               <ProfilePic uri={profilePicUri} size={80} />
             </View>
