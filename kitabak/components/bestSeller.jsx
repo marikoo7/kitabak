@@ -142,7 +142,7 @@ const ExploreSection = () => {
 
 const styles = StyleSheet.create({
   container: { padding: 1 },
-  header: { fontSize: 30, marginBottom: 10, fontFamily: 'MalibuSunday' },
+  header: { fontSize: 40, marginBottom: 10, fontFamily: 'MalibuSunday',color:"#585047" },
   bookContainer: {
     width: 230,
     marginRight: 10,
