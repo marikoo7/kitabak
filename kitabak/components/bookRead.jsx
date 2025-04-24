@@ -48,7 +48,7 @@ const BooksReadSection = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{
               paddingHorizontal: 10,
-              justifyContent: booksToRender.length <= 3 ? "center" : "flex-start",
+              justifyContent: booksToRender.length <= 4 ? "center" : "flex-start",
               flexGrow: 1,
             }}
           />
@@ -78,7 +78,7 @@ const BooksReadSection = () => {
               }}
             >
               {Array.from({ length: 30 }, (_, i) => i + 1).map((num) => (
-                <Picker.Item key={num} label={`${num}`} value={num} />
+                <Picker.Item key={num} label={`${num}`} value={`${num}`} />
               ))}
             </Picker>
             <TouchableOpacity
@@ -106,6 +106,7 @@ const styles = StyleSheet.create({
     color: "#585047",
     marginBottom: 20,
     fontFamily: "MalibuSunday",
+    textAlign: "center",
   },
   card: {
     borderRadius: 16,
