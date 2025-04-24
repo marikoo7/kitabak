@@ -27,7 +27,7 @@ export default function HomeScreen() {
           }
         });
 
-        // Clean up Firestore listener when user changes/logs out
+        // Clean up Firestore listener when user changes the profile pic/logs out
         return () => unsubscribeDoc();
       } else {
         // User logged out
