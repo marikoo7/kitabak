@@ -1,33 +1,72 @@
-import { View, StyleSheet } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { View, StyleSheet, ScrollView } from "react-native";
+import { doc, onSnapshot } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { db, auth } from "../../kitabak-server/firebaseConfig"; 
 import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
 import SearchResult from "@/components/searchResult";
+import ExploreSection from "@/components/explore";
+import BestSeller from "@/components/bestSeller";
+import BookRead from "@/components/bookRead"
+
 
 export default function HomeScreen() {
-  const [user, setUser] = useState({
-    loggedIn: false,
-    profilePic: "https://example.com/user-profile.jpg",
-  });
   const [books, setBooks] = useState([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
+  const [profilePicUri, setProfilePicUri] = useState(null);
+
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        const unsubscribeDoc = onSnapshot(userDocRef, (userDoc) => {
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setProfilePicUri(userData.profilePic);
+          }
+        });
+
+        // Clean up Firestore listener when user changes/logs out
+        return () => unsubscribeDoc();
+      } else {
+        // User logged out
+        setProfilePicUri(null);
+      }
+    });
+
+    return () => unsubscribeAuth();
+  }, []);
 
   return (
-    <View style={styles.container}>
-      
+    <ScrollView style={styles.container}  showsVerticalScrollIndicator={true}>
       <View style={styles.profileContainer}>
-        <ProfilePic uri={user.loggedIn ? user.profilePic : null} size={80} />
-      </View>
+              <ProfilePic uri={profilePicUri} size={80} />
+            </View>
+            
+            <View style={styles.searchContainer}>
+              <SearchBar onSearch={setBooks} setSearchPerformed={setSearchPerformed} />
+            </View>
+            
+            {searchPerformed && (
+              <View style={styles.searchResult}>
+                <SearchResult books={books} searchPerformed={searchPerformed} />
+              </View>
+            )}
 
-      <View style={styles.searchContainer}>
-        <SearchBar onSearch={setBooks} setSearchPerformed={setSearchPerformed} />
-      </View>
+      <ScrollView style={styles.scrollContent1} showsVerticalScrollIndicator={false}>
+            <ExploreSection />
+      </ScrollView>
 
-      <View style={styles.searchResult}>
-        <SearchResult books={books} searchPerformed={searchPerformed} />
-      </View>
+      <ScrollView style={styles.scrollContent2} showsVerticalScrollIndicator={false}>
+         <BestSeller/>
+      </ScrollView>
 
-    </View>
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.bookRead}>
+          <BookRead/>
+      </ScrollView>
+
+      </ScrollView>
   );
 }
 
@@ -43,12 +82,27 @@ const styles = StyleSheet.create({
     right: 20,
   },
   searchContainer: {
-    top: 35,
+    top: 45,
     left: 10,
   },
   searchResult: {
-    flex: 1,
-    marginTop: 40,
-    paddingHorizontal: 10,
+    position: 'absolute', 
+    top: 100, 
+    left: 10,
+    right: 10,
+    zIndex: 10,
   },
+  scrollContent1: {
+    marginTop: 80,
+    padding:10
+  }, 
+   scrollContent2: {
+    marginTop: 40,
+    padding:10
+  }, 
+   bookRead: {
+    marginTop: 40,
+    padding:10
+  },
+
 });

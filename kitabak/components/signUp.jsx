@@ -1,7 +1,7 @@
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { useState } from "react";
 import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore"; 
+import { doc, setDoc, getDoc } from "firebase/firestore"; 
 import { auth, db, provider } from "../kitabak-server/firebaseConfig";
 
 export default function SignUp({ onSwitchToLogin }) {
@@ -23,8 +23,7 @@ export default function SignUp({ onSwitchToLogin }) {
       await setDoc(doc(db, "users", user.uid), {
         username: username,
         email: user.email,
-        profilePic: "https://example.com/default-profile.jpg",
-        createdAt: new Date(),
+        profilePic: null,
       });
       
       alert("Account created successfully!");
@@ -35,11 +34,26 @@ export default function SignUp({ onSwitchToLogin }) {
 
   const handleGoogleSignUp = async () => {
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+  
+      const userDocRef = doc(db, "users", user.uid);
+      const userSnapshot = await getDoc(userDocRef);
+  
+      if (!userSnapshot.exists()) {
+        await setDoc(userDocRef, {
+          username: user.displayName,
+          email: user.email,
+          profilePic: user.photoURL || null,
+        });
+      }
+  
+      alert("Signed in with Google!");
     } catch (error) {
+      console.error(error);
       setError("Google sign-up failed. Try again.");
     }
-  };
+  };  
 
   return (
     <View style={styles.container}>

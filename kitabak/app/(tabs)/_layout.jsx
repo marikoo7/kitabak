@@ -1,19 +1,25 @@
 import { Tabs } from "expo-router";
-import { useState } from "react";
-import { Image, View, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFonts } from "expo-font";
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { useState, useEffect } from 'react';
 
 export default function TabLayout() {
-  // to know if the user is logged in or not
-  const [user, setUser] = useState({
-    loggedIn: false,
-    profilePic: "https://example.com/user-profile.jpg",
-  });
+  const [isAdmin, setIsAdmin] = useState(false);
+  const auth = getAuth();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsAdmin(user?.email === 'mariammahmoud880@yahoo.com' || user?.email === 'kitabak.team@gmail.com');
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const [fontsLoaded] = useFonts({
-    "MalibuSunday": require("../../assets/fonts/MalibuSundaySerif-gwMnE.ttf"), // Update with your font file name
+    "MalibuSunday": require("../../assets/fonts/MalibuSundaySerif-gwMnE.ttf"),
   });
 
   return (
@@ -72,18 +78,7 @@ export default function TabLayout() {
             options={{
               title: "Profile",
               tabBarIcon: ({ color, focused }) =>
-                user.loggedIn && user.profilePic ? (
-                  <Image
-                    source={{ uri: user.profilePic }}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 14,
-                      borderWidth: focused ? 2 : 0,
-                      borderColor: focused ? color : "transparent",
-                    }}
-                  />
-                ) : (
+                (
                   <Ionicons
                     name={
                       focused ? "person-circle-sharp" : "person-circle-outline"
@@ -105,6 +100,20 @@ export default function TabLayout() {
                       ? "information-circle"
                       : "information-circle-outline"
                   }
+                  color={color}
+                  size={24}
+                />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="admin"
+            options={{
+              title: "Admin",
+              href: isAdmin ? "/admin" : null, // hide tab when not admin
+              tabBarIcon: ({ color, focused }) => (
+                <Ionicons
+                  name={focused ? "book-sharp" : "book-outline"}
                   color={color}
                   size={24}
                 />

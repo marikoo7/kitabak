@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  ScrollView,
-  Alert
-} from "react-native";
+import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, Modal, ScrollView } from "react-native";
 import { shuffle } from "lodash";
 import { collection, getDocs, setDoc, doc } from "firebase/firestore";
 import { db, auth } from "../kitabak-server/firebaseConfig";
@@ -29,7 +19,7 @@ const ExploreSection = () => {
         const booksData = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        }));
+        })).filter((book) => book.bestseller === true);
         setBooks(shuffle(booksData));
       } catch (error) {
         console.error("Error fetching books:", error);
@@ -39,11 +29,11 @@ const ExploreSection = () => {
     fetchBooks();
   }, []);
 
-  const handleAddToLibrary = async (book) => {
+  const addToLibrary = async (book) => {
     const user = auth.currentUser;
 
     if (!user) {
-      Alert.alert("Error", "You need to be logged in.");
+      console.log("🚫 User not logged in");
       return;
     }
 
@@ -55,16 +45,13 @@ const ExploreSection = () => {
         author: book.author,
         description: book.description,
         image: book.cover || book.image || "https://via.placeholder.com/200x300",
-        page_count: book.page_count || 0,
-        reviews: book.reviews || 0,
       });
 
-      Alert.alert("Added!", `"${book.title}" has been added to your library.`);
-      setSelectedBook(null);
-      router.push("/library"); // ✅ تحويل تلقائي للـ Library
+      console.log("✅ Book added to Firestore library:", book.title);
+      setSelectedBook(null); // Close modal
+      router.push("/library"); // Navigate to Library page
     } catch (error) {
-      console.error("Error adding to library:", error);
-      Alert.alert("Error", "Something went wrong.");
+      console.error("❌ Error adding to library:", error);
     }
   };
 
@@ -82,7 +69,7 @@ const ExploreSection = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Explore</Text>
+      <Text style={styles.header}>All-Time Bestsellers</Text>
       <FlatList
         data={books}
         keyExtractor={(item) => item.id}
@@ -90,22 +77,12 @@ const ExploreSection = () => {
         showsHorizontalScrollIndicator={false}
         renderItem={({ item }) => (
           <TouchableOpacity onPress={() => setSelectedBook(item)} style={styles.bookContainer}>
-            <View style={styles.excontainer}>
+            <View style={styles.bestcontainer}>
               <Image source={{ uri: item.cover }} style={styles.bookImage} />
             </View>
             <View style={styles.desc}>
-            <Text style={styles.bookTitle} numberOfLines={2} ellipsizeMode="tail">{item.title}</Text>
+               <Text style={styles.bookTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</Text>
               <Text style={styles.bookAuthor}>{item.author}</Text>
-              <View style={styles.review}>
-                <View style={styles.bkP}>
-                  <Text style={styles.bookPages}>{item.page_count}</Text>
-                  <Text style={styles.pg}>pages</Text>
-                </View>
-                <View style={styles.bkP}>
-                  <Text style={styles.bookPages}>{item.reviews}</Text>
-                  <Text style={styles.pg}>reviews</Text>
-                </View>
-              </View>
             </View>
           </TouchableOpacity>
         )}
@@ -117,14 +94,24 @@ const ExploreSection = () => {
           <View style={styles.modalBackground}>
             <View style={styles.modalContainer}>
               <TouchableOpacity onPress={() => setSelectedBook(null)} style={styles.closeIcon}>
-                <Text style={{ fontSize: 20 }}>✖</Text>
+                <Text style={{ fontSize: 18 }}>✖</Text>
               </TouchableOpacity>
 
               <Image source={{ uri: selectedBook.cover }} style={styles.modalImage} />
-              <Text style={styles.modalTitle}>{selectedBook.title}</Text>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{selectedBook.title}</Text>
+                <TouchableOpacity onPress={() => toggleFavorite(selectedBook)} style={styles.favoriteBtn}>
+                  <Icon
+                    name={favorites.some((b) => b.id === selectedBook.id) ? "heart" : "heart-o"}
+                    size={20}
+                    color={favorites.some((b) => b.id === selectedBook.id) ? "red" : "#ccc"}
+                  />
+                </TouchableOpacity>
+              </View>
+
               <Text style={styles.modalAuthor}>{selectedBook.author}</Text>
 
-              <ScrollView>
+              <ScrollView style={styles.modalDescContainer}>
                 <Text style={styles.modalDesc}>{selectedBook.description || "No description available."}</Text>
               </ScrollView>
 
@@ -142,22 +129,8 @@ const ExploreSection = () => {
                 <Text style={styles.ratingNumber}>{selectedBook.rating ? selectedBook.rating.toFixed(1) : "0.0"}</Text>
               </View>
 
-              <TouchableOpacity
-                style={styles.favoriteBtn}
-                onPress={() => toggleFavorite(selectedBook)}
-              >
-                <Icon
-                  name={favorites.some((b) => b.id === selectedBook.id) ? "heart" : "heart-o"}
-                  size={20}
-                  color={favorites.some((b) => b.id === selectedBook.id) ? "red" : "#ccc"}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => handleAddToLibrary(selectedBook)}
-              >
-                <Text style={styles.addButtonText}>Add to Library</Text>
+              <TouchableOpacity onPress={() => addToLibrary(selectedBook)} style={styles.addBtn}>
+                <Text style={styles.addBtnText}>Add to Library</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -171,17 +144,15 @@ const styles = StyleSheet.create({
   container: { padding: 1 },
   header: { fontSize: 40, marginBottom: 10, fontFamily: 'MalibuSunday',color:"#585047" },
   bookContainer: {
-    width: 300,
+    width: 230,
     marginRight: 10,
     padding: 10,
-    backgroundColor: "#b0ad9a",
     borderRadius: 10,
-    flexDirection: "row",
     justifyContent: "center",
   },
-  excontainer: { paddingRight: 20 },
+  bestcontainer: { paddingRight: 20 },
   desc: { justifyContent: "center" },
-  bookImage: { width: 100, height: 150, borderRadius: 8 },
+  bookImage: { width: 200, height: 300, borderRadius: 8 },
   bookTitle: {
     fontSize: 17,
     fontWeight: "bold",
@@ -190,27 +161,24 @@ const styles = StyleSheet.create({
     maxWidth: 170,
     lineHeight: 20, 
   },
-  bookAuthor: { fontSize: 12, color: "#e7e6df", marginTop:5 },
-  bookPages: { fontSize: 17, marginTop: 2, color: "#585047", fontWeight: "bold" },
-  pg: { color: "#e7e6df" },
-  bkP: { paddingRight: 10, paddingTop: 10 },
-  review: { flexDirection: "row" },
+  bookAuthor: { fontSize: 12, color: "#b0ad9a" },
 
+  // Modal styles
   modalBackground: {
     flex: 1,
-    backgroundColor: "#000000aa",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#000000aa',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContainer: {
     width: 300,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 15,
     padding: 20,
-    position: "relative",
+    position: 'relative',
   },
   closeIcon: {
-    position: "absolute",
+    position: 'absolute',
     right: 10,
     top: 10,
     zIndex: 1,
@@ -218,29 +186,44 @@ const styles = StyleSheet.create({
   modalImage: {
     width: 120,
     height: 180,
-    alignSelf: "center",
+    alignSelf: 'center',
     borderRadius: 10,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginTop: 10,
-    textAlign: "center",
+    textAlign: 'center',
+    marginLeft: 30,
   },
   modalAuthor: {
-    textAlign: "center",
-    color: "#555",
+    textAlign: 'center',
+    color: '#555',
     marginBottom: 10,
+  },
+  modalDescContainer: {
+    paddingBottom: 15,
   },
   modalDesc: {
     fontSize: 13,
-    marginTop: 10,
-    textAlign: "center",
+    marginBottom: 15,
+    textAlign: 'center',
+    maxHeight: 200,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    textAlign: 'center',
+    width: '100%',
+  },
+  favoriteBtn: {
+    marginLeft: 10,
   },
   rateText: {
     fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
+    fontWeight: 'bold',
+    textAlign: 'center',
     marginTop: 10,
   },
   starsContainer: {
@@ -254,23 +237,19 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     color: "#FFD700",
   },
-  favoriteBtn: {
-    position: "absolute",
-    top: 220,
-    right: 20,
-  },
-  addButton: {
-    marginTop: 15,
-    backgroundColor: "#7d7362",
-    paddingVertical: 10,
+  addBtn: {
+    backgroundColor: '#222',
+    padding: 10,
     borderRadius: 8,
+    marginTop: 20,
+    marginLeft: 22,
+    width: '80%',
   },
-  addButtonText: {
-    color: "#fff",
-    textAlign: "center",
-    fontWeight: "bold",
-    fontSize: 16,
+  addBtnText: {
+    color: '#fff',
+    textAlign: 'center',     
   },
 });
 
 export default ExploreSection;
+       
