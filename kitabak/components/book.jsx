@@ -11,7 +11,7 @@ import Icon from "react-native-vector-icons/FontAwesome";
 export default function BookComponent({ book, visible, onClose }) {
 
   const { width } = useWindowDimensions();
-const isSmallScreen = width < 500; // ممكن تغيرها حسب تجربتك
+const isSmallScreen = width < 500; 
   
   const toggleModal = useCallback(() => {
     onClose();
