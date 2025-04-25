@@ -1,16 +1,17 @@
-
 import React, { useState, useEffect } from "react";
 import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, Modal, ScrollView } from "react-native";
 import { shuffle } from "lodash";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../kitabak-server/firebaseConfig";
-import Icon from "react-native-vector-icons/FontAwesome"; 
+import { collection, getDocs, setDoc, doc } from "firebase/firestore";
+import { db, auth } from "../kitabak-server/firebaseConfig";
+import Icon from "react-native-vector-icons/FontAwesome";
+import { useRouter } from "expo-router";
 
 const ExploreSection = () => {
   const [books, setBooks] = useState([]);
   const [selectedBook, setSelectedBook] = useState(null);
-  const [library, setLibrary] = useState([]);
-  const [favorites, setFavorites] = useState([]); 
+  const [favorites, setFavorites] = useState([]);
+  const router = useRouter();
+
   useEffect(() => {
     const fetchBooks = async () => {
       try {
@@ -18,7 +19,7 @@ const ExploreSection = () => {
         const booksData = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        }));
+        })).filter((book) => book.bestseller === true);
         setBooks(shuffle(booksData));
       } catch (error) {
         console.error("Error fetching books:", error);
@@ -28,11 +29,30 @@ const ExploreSection = () => {
     fetchBooks();
   }, []);
 
-  const addToLibrary = (book) => {
-    if (!library.some((b) => b.id === book.id)) {
-      setLibrary([...library, book]);
+  const addToLibrary = async (book) => {
+    const user = auth.currentUser;
+
+    if (!user) {
+      console.log("🚫 User not logged in");
+      return;
     }
-    setSelectedBook(null); 
+
+    try {
+      const bookRef = doc(db, "users", user.uid, "library", book.id);
+      await setDoc(bookRef, {
+        id: book.id,
+        title: book.title,
+        author: book.author,
+        description: book.description,
+        image: book.cover || book.image || "https://via.placeholder.com/200x300",
+      });
+
+      console.log("✅ Book added to Firestore library:", book.title);
+      setSelectedBook(null); // Close modal
+      router.push("/library"); // Navigate to Library page
+    } catch (error) {
+      console.error("❌ Error adding to library:", error);
+    }
   };
 
   const toggleFavorite = (book) => {
@@ -44,7 +64,6 @@ const ExploreSection = () => {
   };
 
   const handleRating = (book, rating) => {
-   
     setSelectedBook({ ...selectedBook, rating });
   };
 
@@ -62,7 +81,7 @@ const ExploreSection = () => {
               <Image source={{ uri: item.cover }} style={styles.bookImage} />
             </View>
             <View style={styles.desc}>
-              <Text style={styles.bookTitle}>{item.title}</Text>
+               <Text style={styles.bookTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</Text>
               <Text style={styles.bookAuthor}>{item.author}</Text>
             </View>
           </TouchableOpacity>
@@ -80,7 +99,6 @@ const ExploreSection = () => {
 
               <Image source={{ uri: selectedBook.cover }} style={styles.modalImage} />
               <View style={styles.modalHeader}>
-              
                 <Text style={styles.modalTitle}>{selectedBook.title}</Text>
                 <TouchableOpacity onPress={() => toggleFavorite(selectedBook)} style={styles.favoriteBtn}>
                   <Icon
@@ -90,14 +108,13 @@ const ExploreSection = () => {
                   />
                 </TouchableOpacity>
               </View>
+
               <Text style={styles.modalAuthor}>{selectedBook.author}</Text>
-              
-             
+
               <ScrollView style={styles.modalDescContainer}>
                 <Text style={styles.modalDesc}>{selectedBook.description || "No description available."}</Text>
               </ScrollView>
 
-             
               <Text style={styles.rateText}>Rate this book</Text>
               <View style={styles.starsContainer}>
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -112,7 +129,6 @@ const ExploreSection = () => {
                 <Text style={styles.ratingNumber}>{selectedBook.rating ? selectedBook.rating.toFixed(1) : "0.0"}</Text>
               </View>
 
-             
               <TouchableOpacity onPress={() => addToLibrary(selectedBook)} style={styles.addBtn}>
                 <Text style={styles.addBtnText}>Add to Library</Text>
               </TouchableOpacity>
@@ -126,10 +142,10 @@ const ExploreSection = () => {
 
 const styles = StyleSheet.create({
   container: { padding: 1 },
-  header: { fontSize: 30, marginBottom: 10, fontFamily: 'MalibuSunday' },
+  header: { fontSize: 40, marginBottom: 10, fontFamily: 'MalibuSunday',color:"#585047" },
   bookContainer: {
-    width: 230,
-    marginRight: 10,
+    width: 200,
+    marginRight: 12,
     padding: 10,
     borderRadius: 10,
     justifyContent: "center",
@@ -137,7 +153,14 @@ const styles = StyleSheet.create({
   bestcontainer: { paddingRight: 20 },
   desc: { justifyContent: "center" },
   bookImage: { width: 200, height: 300, borderRadius: 8 },
-  bookTitle: { fontSize: 17, fontWeight: "bold", marginTop: 5, color: "#7d7362" },
+  bookTitle: {
+    fontSize: 17,
+    fontWeight: "bold",
+    marginTop: 5,
+    color: "#7d7362",
+    maxWidth: 170,
+    lineHeight: 20, 
+  },
   bookAuthor: { fontSize: 12, color: "#b0ad9a" },
 
   // Modal styles
@@ -170,8 +193,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 10,
-    textAlign: 'center',  
-    marginLeft:30,
+    textAlign: 'center',
+    marginLeft: 30,
   },
   modalAuthor: {
     textAlign: 'center',
@@ -185,10 +208,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 15,
     textAlign: 'center',
-    maxHeight: 200, 
+    maxHeight: 200,
   },
-
-  
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -196,47 +217,39 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     width: '100%',
   },
-
-  // Button to mark favorite
   favoriteBtn: {
     marginLeft: 10,
   },
-
-  // Rate this book text
   rateText: {
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
     marginTop: 10,
   },
-
-  // Star rating container
   starsContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     marginVertical: 10,
   },
-
-  // Rating number display
   ratingNumber: {
     fontSize: 18,
     marginLeft: 10,
     color: "#FFD700",
   },
-
   addBtn: {
     backgroundColor: '#222',
     padding: 10,
     borderRadius: 8,
     marginTop: 20,
-    marginLeft:22,
+    marginLeft: 22,
     width: '80%',
   },
   addBtnText: {
     color: '#fff',
-    textAlign: 'center',
+    textAlign: 'center',     
   },
 });
 
 export default ExploreSection;
+       

@@ -25,7 +25,7 @@ export default function AboutScreen() {
           }
         });
 
-        // Clean up Firestore listener when user changes/logs out
+        // Clean up Firestore listener when user changes thier profile pic/logs out
         return () => unsubscribeDoc();
       } else {
         // User logged out
@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f4f6f5',
+    padding: 10,
   },
   profileContainer: {
     position: "absolute",
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     alignItems: 'center',
-    marginTop: 100,
+    marginTop: 120,
     paddingHorizontal: 20,
   },
   logo: {
