@@ -1,7 +1,18 @@
-import React from "react";
-import { View, FlatList, Text, TouchableOpacity, StyleSheet } from "react-native";
+
+import React, { useState } from "react";
+import {
+  View,
+  FlatList,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  Image,
+} from "react-native";
 
 export default function BookList({ books, searchPerformed }) {
+  const [selectedBook, setSelectedBook] = useState(null);
+
   if (searchPerformed && !books.length) {
     return <Text style={styles.noResults}>No books found</Text>;
   }
@@ -12,13 +23,62 @@ export default function BookList({ books, searchPerformed }) {
         data={books}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.bookItem}>
+          <TouchableOpacity
+            style={styles.bookItem}
+            onPress={() => setSelectedBook(item)}
+          >
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.author}>{item.author}</Text>
           </TouchableOpacity>
         )}
-        style={{ scrollbarWidth: "none"}}
       />
+
+      
+      {selectedBook && (
+        <Modal transparent={true} animationType="slide" visible={true}>
+          <View style={styles.modalBackground}>
+            <View style={styles.modalContainer}>
+
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setSelectedBook(null)}
+              >
+                <Text style={styles.closeButtonText}>×</Text>
+              </TouchableOpacity>
+
+              <Image
+                source={{ uri: selectedBook.cover }}
+                style={styles.bookImage}
+              />
+
+              <Text style={styles.modalTitle}>{selectedBook.title}</Text>
+
+              <Text style={styles.descriptionTitle}>Description</Text>
+              <Text style={styles.modalDescription}>
+                {selectedBook.description}
+              </Text>
+
+              <View style={styles.starContainer}>
+                {[...Array(5)].map((_, index) => (
+                  <Text
+                    key={index}
+                    style={[
+                      styles.star,
+                      index < 3 ? styles.yellowStar : styles.grayStar,
+                    ]}
+                  >
+                    ★
+                  </Text>
+                ))}
+              </View>
+
+              <TouchableOpacity style={styles.addButton}>
+                <Text style={styles.addButtonText}>Add to Library</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -55,5 +115,77 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#b0ad9a",
     marginLeft: 15,
+  },
+  starContainer: {
+    flexDirection: "row",
+    marginTop: 10,
+   
+  },
+  star: {
+    fontSize: 30,
+    marginRight: 3,
+   marginBottom:10,
+  },
+  yellowStar: {
+    color: "yellow",
+  },
+  grayStar: {
+    color: "#ccc",
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: "#000000aa",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    width: "80%",
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    alignItems: "center",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "transparent",
+  },
+  closeButtonText: {
+    fontSize: 30,
+    color: "#333",
+  },
+  bookImage: {
+    width: 120,
+    height: 180,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  descriptionTitle: {
+    fontSize: 30,
+     marginBottom: 10, 
+     fontFamily: 'MalibuSunday',
+     color:"#58504"
+    
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: "#444",
+    marginBottom: 20,
+  },
+  addButton: {
+    backgroundColor: "#333",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
+  addButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
 });
