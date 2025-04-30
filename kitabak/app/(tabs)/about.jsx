@@ -68,7 +68,7 @@ export default function AboutScreen() {
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>The Team Behind Kitabak</Text>
           <Text style={styles.paragraph}>
-            Our team includes Mariam Mahmoud, Mai Mohammed, Alaa Najah, Amira Haggag, Aya Aid, Nada Sameh, Rahma Mostafa, and Salma Medhat. Together, we're crafting an innovative reading platform that transforms how you experience books.
+            Our team includes Alaa Najah, Amira Haggag, Aya Aid, Mai Mohammed, Mariam Mahmoud, Nada Sameh, Rahma Mostafa, and Salma Medhat. Together, we're crafting an innovative reading platform that transforms how you experience books.
           </Text>
         </View>
 

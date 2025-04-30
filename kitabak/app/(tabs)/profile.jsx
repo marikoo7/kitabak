@@ -4,10 +4,12 @@ import { onAuthStateChanged, signOut, sendEmailVerification } from "firebase/aut
 import { auth } from "../../kitabak-server/firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../kitabak-server/firebaseConfig";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Login from "../../components/login";
 import SignUp from "../../components/signUp";
 import GetStarted from "../../components/getStarted";
 import UserInfoDisplay from "../../components/UserInfoDisplay";
+import ReadingGoalTracker from "../../components/ReadingGoalTracker";
 
 const { width } = Dimensions.get("window");
 const isWeb = Platform.OS === 'web';
@@ -51,6 +53,20 @@ export default function ProfileScreen() {
       };
     }, 500);
   }, []);
+
+  useEffect(() => {
+    const resetDailyReadingTime = async () => {
+      const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+      const lastDate = await AsyncStorage.getItem("lastReadingDate");
+  
+      if (lastDate !== today) {
+        await AsyncStorage.setItem("todayReadingTime", "0");
+        await AsyncStorage.setItem("lastReadingDate", today);
+      }
+    };
+  
+    resetDailyReadingTime();
+  }, []);  
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -114,6 +130,8 @@ export default function ProfileScreen() {
         />
         
         <View style={styles.spacer} />
+        <ReadingGoalTracker />
+        <View style={styles.spacer} />
         
         <TouchableOpacity style={[styles.logoutButton, isWeb && styles.webLogoutButton]} onPress={handleLogout}>
           <Text style={styles.logoutText}>Logout</Text>
@@ -132,7 +150,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: isWeb ? 40 : 20,
+    paddingTop: isWeb ? 40 : 5,
     width: isWeb ? (width > 1200 ? '80%' : '90%') : '100%',
     alignSelf: 'center',
   },
@@ -155,7 +173,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
   },
   logoutText: {
-    color: "#fff",
+    color: "#f6f6f4",
     fontWeight: "bold",
     fontSize: isWeb ? 18 : 16,
   },

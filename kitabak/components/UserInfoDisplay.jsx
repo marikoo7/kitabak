@@ -136,13 +136,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingHorizontal: Platform.OS === 'web' ? 40 : 20,
+    paddingHorizontal: Platform.OS === 'web' ? 10 : 20,
     paddingVertical: Platform.OS === 'web' ? 0 : 30,
   },
   profileContainer: {
     marginRight: Platform.OS === 'web' ? 20 : 17,
     marginBottom: Platform.OS === 'web' ? -35 : 10,
-    marginLeft: Platform.OS === 'web' ? -100 : 0,
+    marginLeft: Platform.OS === 'web' ? -40 : 0,
   },
   userInfoContainer: {
     flex: 1,
@@ -212,6 +212,7 @@ const styles = StyleSheet.create({
     fontSize: isWeb ? 18 : 16,
     color: "#585047",
     marginBottom: 20,
+    outlineStyle: "none",
   },
   modalButtons: {
     flexDirection: 'row',

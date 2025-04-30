@@ -136,7 +136,7 @@ export default function AdminDashboard() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Admin Dashboard</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => openModal()}>
-          <Text style={styles.addButtonText}>+ Add Book </Text>
+          <Text style={styles.addButtonText}>Add</Text>
         </TouchableOpacity>
       </View>
 
@@ -302,19 +302,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#585047',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 8,
   },
   addButtonText: {
     color: '#f6f6f4',
     fontWeight: 'bold',
   },
   searchInput: {
-    margin: 16,
+    margin: 14,
+    marginBottom: 1,
     padding: 16,
     backgroundColor: '#e7e6df',
-    borderRadius: 20,
-    color: '#b0ad9a',
+    borderRadius: 8,
+    color: '#7d7362',
     fontSize: 17,
+    outlineStyle: "none",
   },
   loader: {
     marginTop: 20,
@@ -366,8 +368,8 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
+    paddingVertical: 8,
+    borderRadius: 8,
     marginRight: 8,
   },
   editButton: {
