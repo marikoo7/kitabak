@@ -1,4 +1,4 @@
-import { View, StyleSheet, Dimensions, Text, TouchableOpacity, SafeAreaView, Platform } from "react-native";
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity, SafeAreaView, Platform, ScrollView } from "react-native";
 import { useState, useEffect } from "react";
 import { onAuthStateChanged, signOut, sendEmailVerification } from "firebase/auth";
 import { auth } from "../../kitabak-server/firebaseConfig";
@@ -12,7 +12,7 @@ import UserInfoDisplay from "../../components/UserInfoDisplay";
 import ReadingGoalTracker from "../../components/ReadingGoalTracker";
 
 const { width } = Dimensions.get("window");
-const isWeb = Platform.OS === 'web';
+const isWeb = Platform.OS === "web";
 
 export default function ProfileScreen() {
   const [user, setUser] = useState(null);
@@ -56,17 +56,17 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     const resetDailyReadingTime = async () => {
-      const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+      const today = new Date().toISOString().split("T")[0];
       const lastDate = await AsyncStorage.getItem("lastReadingDate");
-  
+
       if (lastDate !== today) {
         await AsyncStorage.setItem("todayReadingTime", "0");
         await AsyncStorage.setItem("lastReadingDate", today);
       }
     };
-  
+
     resetDailyReadingTime();
-  }, []);  
+  }, []);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -96,18 +96,29 @@ export default function ProfileScreen() {
   }
 
   if (!user) {
-    return isSignUp ? <SignUp onSwitchToLogin={() => setIsSignUp(false)} /> : <Login onSwitchToSignUp={() => setIsSignUp(true)} />;
+    return isSignUp ? (
+      <SignUp onSwitchToLogin={() => setIsSignUp(false)} />
+    ) : (
+      <Login onSwitchToSignUp={() => setIsSignUp(true)} />
+    );
   }
 
   if (verificationSent) {
     return (
       <View style={styles.verificationContainer}>
         <Text style={styles.verifyTitle}>Please verify your email</Text>
-        <Text style={styles.verifyInfo}>We've sent a verification link to:</Text>
+        <Text style={styles.verifyInfo}>
+          We've sent a verification link to:
+        </Text>
         <Text style={styles.userEmail}>{user.email}</Text>
-        <Text style={styles.verifyTip}>Once verified, refresh the page to continue to your profile page</Text>
+        <Text style={styles.verifyTip}>
+          Once verified, refresh the page to continue to your profile page
+        </Text>
 
-        <TouchableOpacity style={styles.resendButton} onPress={handleResendVerification}>
+        <TouchableOpacity
+          style={styles.resendButton}
+          onPress={handleResendVerification}
+        >
           <Text style={styles.resendButtonText}>Resend Email</Text>
         </TouchableOpacity>
 
@@ -120,23 +131,28 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.contentContainer}>
-        <UserInfoDisplay 
-          user={user}
-          selectedProfilePic={selectedProfilePic}
-          setProfilePic={setProfilePic}
-          userData={userData}
-          setUserData={setUserData}
-        />
-        
-       
-        <ReadingGoalTracker />
-       
-        
-        <TouchableOpacity style={[styles.logoutButton, isWeb && styles.webLogoutButton]} onPress={handleLogout}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsHorizontalScrollIndicator={false}>
+        <View style={styles.section}>
+          <UserInfoDisplay
+            user={user}
+            selectedProfilePic={selectedProfilePic}
+            setProfilePic={setProfilePic}
+            userData={userData}
+            setUserData={setUserData}
+          />
+        </View>
+
+        <View style={[styles.section, styles.trackerContainer]}>
+          <ReadingGoalTracker />
+        </View>
+
+        <TouchableOpacity
+          style={[styles.logoutButton, isWeb && styles.webLogoutButton]}
+          onPress={handleLogout}
+        >
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -146,16 +162,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f6f6f4",
   },
-  contentContainer: {
-    flex: 1,
+  scrollContent: {
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingTop: isWeb ? 40 : 5,
-    width: isWeb ? (width > 1200 ? '80%' : '90%') : '100%',
-    alignSelf: 'center',
+    justifyContent: "flex-start",
+    paddingTop: isWeb ? 60 : 20,
+    paddingBottom: 80,
+    width: isWeb ? (width > 1200 ? "70%" : "90%") : "100%",
+    alignSelf: "center",
+  },
+  section: {
+    marginBottom: 100,
+    width: "100%",
+    alignItems: "center",
+  },
+  trackerContainer: {
+    transform: isWeb ? [{ scale: 1.5 }] : [],
+    marginBottom: isWeb ? 80 : 0,
+    marginTop: isWeb ? 100 : 0,
+    alignItems: 'center',
   },
   logoutButton: {
-    marginBottom: 30,
     backgroundColor: "#e74c3c",
     paddingVertical: 12,
     paddingHorizontal: 50,
@@ -163,6 +189,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
+    marginTop: 30,
+    marginBottom: -30,
+    alignSelf: "center",
   },
   webLogoutButton: {
     paddingVertical: 15,
@@ -175,7 +204,7 @@ const styles = StyleSheet.create({
     fontSize: isWeb ? 18 : 16,
   },
 
-  // verification screen styles
+  // Verification styles
   verificationContainer: {
     flex: 1,
     backgroundColor: "#f6f6f4",

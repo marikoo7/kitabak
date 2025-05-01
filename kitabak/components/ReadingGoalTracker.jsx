@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput, Platform } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Svg, { Path } from "react-native-svg";
 import { useRouter } from "expo-router";
+import { db, auth } from "../kitabak-server/firebaseConfig";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+const isWeb = Platform.OS === "web";
 
 const RADIUS = 120;
 const CIRCUMFERENCE = Math.PI * RADIUS;
@@ -17,48 +20,126 @@ export default function ReadingGoalTracker() {
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [newGoal, setNewGoal] = useState("");
   const isFocused = useIsFocused();
+  const [userId, setUserId] = useState(null);
 
-  const fetchStats = async () => {
-    const today = new Date().toDateString();
-    const lastReset = await AsyncStorage.getItem("lastReadingDate");
-    const storedTime = await AsyncStorage.getItem("todayReadingTime");
-    const goal = await AsyncStorage.getItem("readingGoalMinutes");
-    const last = await AsyncStorage.getItem("lastOpenedBookTitle");
-    const url = await AsyncStorage.getItem("lastOpenedBookUrl");
+  
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+      } else {
+        setUserId(null);
+        // reset local state if user logs out
+        setReadingTime(0);
+        setGoalMinutes(5);
+        setLastBook(null);
+        setLastBookUrl(null);
+      }
+    });
+    return () => unsubscribe(); 
+  }, []);
 
-    if (lastReset !== today) {
-      await AsyncStorage.setItem("lastReadingDate", today);
-      await AsyncStorage.setItem("todayReadingTime", "0");
-      setReadingTime(0);
-    } else {
-      setReadingTime(storedTime ? parseInt(storedTime) : 0);
+  const fetchStats = useCallback(async () => {
+
+    const statsDocRef = doc(db, "users", userId, "readingStats", "daily");
+    const todayString = new Date().toDateString();
+
+    try {
+      const docSnap = await getDoc(statsDocRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const lastResetDate = data.lastReadingDate;
+
+        if (lastResetDate !== todayString) {
+          // reset time for the new day
+          await updateDoc(statsDocRef, {
+            lastReadingDate: todayString,
+            todayReadingTime: 0,
+          });
+          setReadingTime(0);
+          console.log("Daily reading time reset for new day.");
+        } else {
+          setReadingTime(data.todayReadingTime || 0);
+        }
+
+        setGoalMinutes(data.readingGoalMinutes || 5);
+        setLastBook(data.lastOpenedBookTitle || null);
+        setLastBookUrl(data.lastOpenedBookUrl || null);
+
+      } else {
+        console.log("No reading stats document found, creating one.");
+        await setDoc(statsDocRef, {
+          lastReadingDate: todayString,
+          todayReadingTime: 0,
+          readingGoalMinutes: 5,
+          lastOpenedBookTitle: null,
+          lastOpenedBookUrl: null,
+        });
+        //local state to defaults
+        setReadingTime(0);
+        setGoalMinutes(5);
+        setLastBook(null);
+        setLastBookUrl(null);
+      }
+    } catch (error) {
+      console.error("Error fetching/updating reading stats:", error);
+      //default state on error
+       setReadingTime(0);
+       setGoalMinutes(5);
+       setLastBook(null);
+       setLastBookUrl(null);
     }
+  }, [userId]);
 
-    setGoalMinutes(goal ? parseInt(goal) : 5);
-    if (last) setLastBook(last);
-
-    if (url) setLastBookUrl(url);
-  };
 
   useEffect(() => {
-    if (isFocused) {
+    if (isFocused && userId) {
       fetchStats();
     }
-  }, [isFocused]);
+  }, [isFocused, fetchStats, userId]);
 
   const minutes = Math.floor(readingTime / 60);
-  const percent = Math.min(readingTime / (goalMinutes * 60), 1);
+  const seconds = readingTime % 60;
+  const percent = goalMinutes > 0 ? Math.min(readingTime / (goalMinutes * 60), 1) : 0;
   const strokeDashoffset = CIRCUMFERENCE * (1 - percent);
 
   const adjustGoal = async () => {
+    if (!userId) {
+        Alert.alert("Not Logged In", "You must be logged in to set a goal.");
+        return;
+    }
+
     const num = parseInt(newGoal);
     if (!isNaN(num) && num > 0) {
-      await AsyncStorage.setItem("readingGoalMinutes", num.toString());
-      setGoalMinutes(num);
-      setShowAdjustModal(false);
-      setNewGoal("");
+      const statsDocRef = doc(db, "users", userId, "readingStats", "daily");
+      try {
+        await updateDoc(statsDocRef, {
+          readingGoalMinutes: num,
+        });
+        setGoalMinutes(num);
+        setShowAdjustModal(false);
+        setNewGoal("");
+         console.log("Reading goal updated in Firestore.");
+      } catch (error) {
+        console.error("Error updating reading goal:", error);
+        Alert.alert("Error", "Could not update reading goal. Please try again.");
+      }
+    } else {
+       Alert.alert("Invalid Input", "Please enter a positive number of minutes for your goal.");
     }
   };
+
+  const handlePressAction = () => {
+      if (readingTime === 0 && !lastBookUrl) {
+        router.push("/store");
+      } else if(lastBookUrl){ 
+        router.push({ pathname: "/bookreading", params: { url: lastBookUrl, title: lastBook || undefined } });
+      } else {
+          Alert.alert("Resume Reading", "No specific book found to resume. Go to your library or the store?");
+      }
+  };
+
 
   return (
     <View style={styles.container}>
@@ -67,9 +148,9 @@ export default function ReadingGoalTracker() {
 
       <View style={styles.progressContainer}>
         <Svg width="260" height="160">
-          <Path d={`M10,130 A120,120 0 0,1 250,130`} stroke="#b0ad9a" strokeWidth="12" fill="none" strokeLinecap="round" />
+          <Path d={`M10,130 A${RADIUS},${RADIUS} 0 0,1 ${RADIUS*2+10},130`} stroke="#b0ad9a" strokeWidth="12" fill="none" strokeLinecap="round" />
           <Path
-            d={`M10,130 A120,120 0 0,1 250,130`}
+            d={`M10,130 A${RADIUS},${RADIUS} 0 0,1 ${RADIUS*2+10},130`}
             stroke="#585047"
             strokeWidth="12"
             fill="none"
@@ -85,13 +166,13 @@ export default function ReadingGoalTracker() {
             <>
               <Text style={styles.checkmark}>✔</Text>
               <TouchableOpacity onPress={() => setShowAdjustModal(true)}>
-                <Text style={styles.goalReached}>{goalMinutes} minutes goal tap to adjust</Text>
+                <Text style={styles.goalReached}>{goalMinutes} minutes goal reached! Tap to adjust.</Text>
               </TouchableOpacity>
             </>
           ) : (
             <>
               <Text style={styles.timerText}>
-                {minutes}:{(readingTime % 60).toString().padStart(2, "0")}
+                {minutes}:{seconds.toString().padStart(2, "0")}
               </Text>
               <TouchableOpacity onPress={() => setShowAdjustModal(true)}>
                 <Text style={styles.goalText}>of your {goalMinutes}-minute goal ›</Text>
@@ -101,53 +182,45 @@ export default function ReadingGoalTracker() {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.button}
-        onPress={() => {
-          if (readingTime === 0) {
-            router.push("/store");
-          } else if(lastBookUrl){
-            router.push({ pathname: "/bookreading", params: { url: lastBookUrl} });
-          } else {
-            Alert.alert("No last book found", "Please open a book first from the store.");
-          }
-        }}
-      >
-        {readingTime === 0 ? (
-          <Text style={styles.buttonText}>Explore the Book Store</Text>
+      <TouchableOpacity style={styles.button} onPress={handlePressAction}>
+         {readingTime === 0 && !lastBookUrl ? (
+            <Text style={styles.buttonText}>Explore the Book Store</Text>
         ) : (
-          <View style={{ alignItems: "center" }}>
+            <View style={{ alignItems: "center" }}>
             <Text style={styles.buttonText}>Keep Reading</Text>
-            <Text style={styles.bookTitleText}>{lastBook}</Text>
-          </View>
+            {lastBook && <Text style={styles.bookTitleText}>{lastBook}</Text>}
+            </View>
         )}
       </TouchableOpacity>
 
-      <Modal transparent visible={showAdjustModal} animationType="fade">
+      <Modal transparent visible={showAdjustModal} animationType="fade" onRequestClose={() => setShowAdjustModal(false)}>
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Adjust Your Daily Goal</Text>
-                <TextInput
-                    keyboardType="numeric"
-                    value={newGoal}
-                    onChangeText={setNewGoal}
-                    style={styles.input}
-                    placeholder="Enter minutes"
-                    placeholderTextColor="#b0ad9a"
-                />
-                <View style={styles.modalButtons}>
-                    <TouchableOpacity
-                    style={[styles.modalButton, styles.cancelButton]}
-                    onPress={() => setShowAdjustModal(false)}
-                    >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                    style={[styles.modalButton, styles.saveButton]}
-                    onPress={adjustGoal}
-                    >
-                    <Text style={styles.saveButtonText}>Save</Text>
-                    </TouchableOpacity>
-                </View>
+                    <Text style={styles.modalTitle}>Adjust Your Daily Goal</Text>
+                    <TextInput
+                        keyboardType="numeric"
+                        value={newGoal}
+                        onChangeText={setNewGoal}
+                        style={styles.input}
+                        placeholder={`Current goal: ${goalMinutes} minutes`}
+                        placeholderTextColor="#b0ad9a"
+                        autoFocus={true}
+                    />
+                    <View style={styles.modalButtons}>
+                        <TouchableOpacity
+                            style={[styles.modalButton, styles.cancelButton]}
+                            onPress={() => {setShowAdjustModal(false); setNewGoal("");}} // reset input on cancel
+                        >
+                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.modalButton, styles.saveButton, (!newGoal || isNaN(parseInt(newGoal)) || parseInt(newGoal) <= 0) && styles.disabledButton]} // Add disabled style
+                            onPress={adjustGoal}
+                            disabled={!newGoal || isNaN(parseInt(newGoal)) || parseInt(newGoal) <= 0} // the goal must be a number
+                        >
+                            <Text style={styles.saveButtonText}>Save</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View>
         </Modal>
@@ -158,6 +231,7 @@ export default function ReadingGoalTracker() {
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
+    paddingVertical: 20,
   },
   title: {
     fontSize: 40,
@@ -170,15 +244,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: "center",
     marginBottom: 20,
+    paddingHorizontal: 15,
   },
   progressContainer: {
+    width: 260,
+    height: 160,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
+    marginBottom: 20,
   },
   readingTextContainer: {
     position: "absolute",
-    top: 45,
+    top: '35%',
     alignItems: "center",
     justifyContent: "center",
     width: 200,
@@ -188,10 +266,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
     fontFamily: "MalibuSunday",
+    marginBottom: 5,
   },
   timerText: {
     color: "#7d7362",
-    fontSize: 60,
+    fontSize: 50,
     fontWeight: "bold",
     fontFamily: "MalibuSunday",
   },
@@ -199,45 +278,50 @@ const styles = StyleSheet.create({
     color: "#b0ad9a",
     fontSize: 14,
     textDecorationLine: "underline",
-    marginTop: -12,
+    marginTop: 0,
   },
   checkmark: {
-    fontSize: 40,
+    fontSize: 35,
     color: "#f6f6f4",
-    backgroundColor: "#b0ad9a",
+    backgroundColor: "#2d502f",
     width: 48,
     height: 48,
     borderRadius: 24,
     textAlign: "center",
     lineHeight: 48,
     marginTop: 10,
+    overflow: 'hidden',
   },
   goalReached: {
     fontSize: 12,
     color: "#b0ad9a",
     textDecorationLine: "underline",
     textAlign: "center",
-    marginTop: 100,
+    marginTop: 8,
   },
   button: {
     backgroundColor: "#7d7362",
-    paddingVertical: 10,
+    paddingVertical: 10, 
     paddingHorizontal: 55,
     borderRadius: 30,
+    marginTop: 10, 
+    minWidth: 220, 
+    alignItems: 'center',
   },
   buttonText: {
     color: "#f6f6f4",
     fontWeight: "bold",
+    fontSize: 16,
   },
   bookTitleText: {
     fontSize: 12,
     color: "#f6f6f4",
     marginTop: 2,
     fontWeight: "normal",
-  },  
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -245,7 +329,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#f6f6f4",
     borderRadius: 15,
     padding: 25,
-    width: '40%',
+    width: isWeb? '40%' : '80%',
+    maxWidth: 350,
     alignItems: 'center',
     shadowColor: "#000",
     shadowOffset: {
@@ -261,6 +346,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: "#585047",
     marginBottom: 20,
+    textAlign: 'center',
   },
   input: {
     width: '100%',
@@ -271,20 +357,23 @@ const styles = StyleSheet.create({
     padding: 15,
     fontSize: 16,
     color: "#585047",
-    marginBottom: 20,
-    outlineStyle: "none",
+    marginBottom: 25,
+    textAlign: 'center',
+    outlineStyle: 'none',
   },
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     width: '100%',
   },
   modalButton: {
     paddingVertical: 12,
-    paddingHorizontal: 25,
+    paddingHorizontal: 20,
     borderRadius: 10,
     width: '45%',
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
   },
   cancelButton: {
     backgroundColor: "#e74c3c",
@@ -301,5 +390,8 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 14,
+  },
+   disabledButton: {
+    backgroundColor: "#cccccc",
   },
 });
