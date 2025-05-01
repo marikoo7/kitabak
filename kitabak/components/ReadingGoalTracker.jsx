@@ -10,6 +10,7 @@ const CIRCUMFERENCE = Math.PI * RADIUS;
 
 export default function ReadingGoalTracker() {
   const router = useRouter();
+  const [lastBookUrl, setLastBookUrl] = useState(null);
   const [readingTime, setReadingTime] = useState(0);
   const [goalMinutes, setGoalMinutes] = useState(5);
   const [lastBook, setLastBook] = useState(null);
@@ -23,6 +24,7 @@ export default function ReadingGoalTracker() {
     const storedTime = await AsyncStorage.getItem("todayReadingTime");
     const goal = await AsyncStorage.getItem("readingGoalMinutes");
     const last = await AsyncStorage.getItem("lastOpenedBookTitle");
+    const url = await AsyncStorage.getItem("lastOpenedBookUrl");
 
     if (lastReset !== today) {
       await AsyncStorage.setItem("lastReadingDate", today);
@@ -34,6 +36,8 @@ export default function ReadingGoalTracker() {
 
     setGoalMinutes(goal ? parseInt(goal) : 5);
     if (last) setLastBook(last);
+
+    if (url) setLastBookUrl(url);
   };
 
   useEffect(() => {
@@ -101,14 +105,21 @@ export default function ReadingGoalTracker() {
         onPress={() => {
           if (readingTime === 0) {
             router.push("/store");
+          } else if(lastBookUrl){
+            router.push({ pathname: "/bookreading", params: { url: lastBookUrl} });
           } else {
-    
+            Alert.alert("No last book found", "Please open a book first from the store.");
           }
         }}
       >
-        <Text style={styles.buttonText}>
-          {readingTime === 0 ? "Explore the Book Store" : `Keep Reading ${lastBook || ""}`}
-        </Text>
+        {readingTime === 0 ? (
+          <Text style={styles.buttonText}>Explore the Book Store</Text>
+        ) : (
+          <View style={{ alignItems: "center" }}>
+            <Text style={styles.buttonText}>Keep Reading</Text>
+            <Text style={styles.bookTitleText}>{lastBook}</Text>
+          </View>
+        )}
       </TouchableOpacity>
 
       <Modal transparent visible={showAdjustModal} animationType="fade">
@@ -210,14 +221,20 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#7d7362",
-    paddingVertical: 15,
-    paddingHorizontal: 53,
+    paddingVertical: 10,
+    paddingHorizontal: 55,
     borderRadius: 30,
   },
   buttonText: {
     color: "#f6f6f4",
     fontWeight: "bold",
   },
+  bookTitleText: {
+    fontSize: 12,
+    color: "#f6f6f4",
+    marginTop: 2,
+    fontWeight: "normal",
+  },  
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

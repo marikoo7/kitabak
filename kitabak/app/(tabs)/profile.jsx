@@ -129,9 +129,9 @@ export default function ProfileScreen() {
           setUserData={setUserData}
         />
         
-        <View style={styles.spacer} />
+       
         <ReadingGoalTracker />
-        <View style={styles.spacer} />
+       
         
         <TouchableOpacity style={[styles.logoutButton, isWeb && styles.webLogoutButton]} onPress={handleLogout}>
           <Text style={styles.logoutText}>Logout</Text>
@@ -153,9 +153,6 @@ const styles = StyleSheet.create({
     paddingTop: isWeb ? 40 : 5,
     width: isWeb ? (width > 1200 ? '80%' : '90%') : '100%',
     alignSelf: 'center',
-  },
-  spacer: {
-    flex: 1,
   },
   logoutButton: {
     marginBottom: 30,

@@ -5,10 +5,17 @@ import { useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function ReadBookScreen() {
-  const { url } = useLocalSearchParams();
+  const { url, title } = useLocalSearchParams();
 
   useEffect(() => {
+    if (title) {
+      AsyncStorage.setItem("lastOpenedBookTitle", title);
+    }
+  }, [title]);
+  
+  useEffect(() => {
     const startTime = Date.now();
+    AsyncStorage.setItem("lastOpenedBookUrl", url);
 
     return () => {
       const endTime = Date.now();
@@ -34,7 +41,7 @@ export default function ReadBookScreen() {
   if (!url) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>لا يوجد رابط PDF</Text>
+        <Text>The PDF is not available</Text>
       </View>
     );
   }

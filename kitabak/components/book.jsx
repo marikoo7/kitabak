@@ -89,7 +89,10 @@ const isSmallScreen = width < 500;
     if (book?. bookpdf) {
       router.push({
         pathname: "/bookreading",
-        params: { url: book.bookpdf }
+        params: { 
+          url: book.bookpdf,
+          title: book.title
+        }
       });
       onClose(); 
     } else {
