@@ -3,7 +3,6 @@ import {
   View,
   Text,
   FlatList,
-  TouchableOpacity,
   StyleSheet,
   Image,
   Dimensions,
@@ -11,21 +10,18 @@ import {
 import { db, auth } from "../../kitabak-server/firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import Icon from "react-native-vector-icons/FontAwesome";
-import { useRouter } from "expo-router";
 
 const screenWidth = Dimensions.get("window").width;
 
-export default function LibraryScreen() {
-  const [libraryBooks, setLibraryBooks] = useState([]);
+export default function FavoritesScreen() {
+  const [favoriteBooks, setFavoriteBooks] = useState([]);
   const [userUID, setUserUID] = useState(null);
-  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUserUID(user.uid);
-        fetchBooks(user.uid);
+        fetchFavorites(user.uid);
       } else {
         setUserUID(null);
       }
@@ -34,27 +30,19 @@ export default function LibraryScreen() {
     return () => unsubscribe();
   }, []);
 
-  const fetchBooks = async (uid) => {
-    const booksRef = collection(db, "users", uid, "library");
-    const booksSnapshot = await getDocs(booksRef);
-    const books = booksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setLibraryBooks(books);
+  const fetchFavorites = async (uid) => {
+    const favsRef = collection(db, "users", uid, "favorites");
+    const favsSnapshot = await getDocs(favsRef);
+    const favs = favsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setFavoriteBooks(favs);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Library</Text>
-
-      <TouchableOpacity
-        style={styles.favoriteTab}
-        onPress={() => router.push("/FavoritesScreen")}
-      >
-        <Text style={styles.favoriteText}>Favorites</Text>
-        <Icon name="chevron-right" size={16} color="#7d7362" />
-      </TouchableOpacity>
+      <Text style={styles.title}>Favorites</Text>
 
       <FlatList
-        data={libraryBooks}
+        data={favoriteBooks}
         keyExtractor={(item) => item.id}
         numColumns={3}
         contentContainerStyle={styles.bookListContainer}
@@ -82,21 +70,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     color: "#7d7362",
-    marginBottom: 10,
-  },
-  favoriteTab: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#f0eee9",
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
     marginBottom: 20,
-  },
-  favoriteText: {
-    fontSize: 16,
-    color: "#7d7362",
   },
   bookListContainer: {
     paddingBottom: 20,
