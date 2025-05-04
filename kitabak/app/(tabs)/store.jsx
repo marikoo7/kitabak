@@ -78,6 +78,7 @@ export default function StoreScreen() {
   
   return (
     <SafeAreaView style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.profileContainer}>
         <ProfilePic uri={profilePicUri} size={80} />
       </View>
@@ -89,9 +90,7 @@ export default function StoreScreen() {
       <View style={styles.searchResult}>
         <SearchResult books={book} searchPerformed={searchPerformed} />
       </View>
-
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.header}>Fictional</Text>
+        <Text style={styles.header1}>Fictional</Text>
         <FlatList
           data={fictionalBooks}
           keyExtractor={(item) => item.id}
@@ -102,7 +101,7 @@ export default function StoreScreen() {
               
               <View style={styles.bookContainer}>
                 <Image source={{ uri: item.cover }} style={styles.bookImage} />
-                <Text style={styles.bookTitle}>{item.title}</Text>
+                <Text style={styles.bookTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</Text>
                 <Text style={styles.bookAuthor}>{item.author}</Text>
               </View>
             </TouchableOpacity>
@@ -119,7 +118,7 @@ export default function StoreScreen() {
             <TouchableOpacity onPress={() => handleBookPress(item)}>
             <View style={styles.bookContainer}>
               <Image source={{ uri: item.cover }} style={styles.bookImage} />
-              <Text style={styles.bookTitle}>{item.title}</Text>
+              <Text style={styles.bookTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</Text>
               <Text style={styles.bookAuthor}>{item.author}</Text>
             </View>
             </TouchableOpacity>
@@ -136,7 +135,7 @@ export default function StoreScreen() {
             <TouchableOpacity onPress={() => handleBookPress(item)}>
             <View style={styles.bookContainer}>
               <Image source={{ uri: item.cover }} style={styles.bookImage} />
-              <Text style={styles.bookTitle}>{item.title}</Text>
+              <Text style={styles.bookTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</Text>
               <Text style={styles.bookAuthor}>{item.author}</Text>
             </View>
             </TouchableOpacity>
@@ -153,7 +152,7 @@ export default function StoreScreen() {
             <TouchableOpacity onPress={() => handleBookPress(item)}>
             <View style={styles.bookContainer}>
               <Image source={{ uri: item.cover }} style={styles.bookImage} />
-              <Text style={styles.bookTitle}>{item.title}</Text>
+              <Text style={styles.bookTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</Text>
               <Text style={styles.bookAuthor}>{item.author}</Text>
             </View>
             </TouchableOpacity>
@@ -169,7 +168,7 @@ export default function StoreScreen() {
             <TouchableOpacity onPress={() => handleBookPress(item)}>
             <View style={styles.bookContainer}>
               <Image source={{ uri: item.cover }} style={styles.bookImage} />
-              <Text style={styles.bookTitle}>{item.title}</Text>
+              <Text style={styles.bookTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</Text>
               <Text style={styles.bookAuthor}>{item.author}</Text>
             </View>
             </TouchableOpacity>
@@ -189,21 +188,33 @@ export default function StoreScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 16 },
+
   profileContainer: {
     position: "absolute",
-    top: 33,
-    right: 20,
+    top: 45,
+    right: 30,
   },
   searchContainer: {
-    top: 45,
-    left: 10,
+    top: 40,
+    left: 5,
   },
   searchResult: {
-    marginTop: 40,
-    paddingHorizontal: 10,
+    position: 'absolute', 
+    top: 100, 
+    left: 20,
+    right: 10,
+    zIndex: 10,
+  },
+  header1: {
+    fontSize: 40,
+    fontWeight: "bold",
+    marginBottom: 10,
+    marginTop: 100,
+    color: "#7d7362",
+    fontFamily: 'MalibuSunday',
   },
   header: {
-    fontSize: 32,
+    fontSize: 40,
     fontWeight: "bold",
     marginBottom: 10,
     marginTop: 20,
@@ -221,10 +232,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   bookTitle: {
-    fontSize: 12,
+    fontSize: 17,
     fontWeight: "bold",
     marginTop: 5,
     color: "#7d7362",
+    maxWidth: 170,
+    lineHeight: 20,
   },
   bookAuthor: {
     fontSize: 10,
