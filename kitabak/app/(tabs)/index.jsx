@@ -9,6 +9,7 @@ import SearchResult from "@/components/searchResult";
 import ExploreSection from "@/components/explore";
 import BestSeller from "@/components/bestSeller";
 import BookRead from "@/components/bookRead"
+import ChatBubble from "@/components/ChatBubble";
 
 
 export default function HomeScreen() {
@@ -27,7 +28,7 @@ export default function HomeScreen() {
           }
         });
 
-        // Clean up Firestore listener when user changes the profile pic/logs out
+        // Clean up Firestore listener when user changes/logs out
         return () => unsubscribeDoc();
       } else {
         // User logged out
@@ -39,34 +40,45 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <ScrollView style={styles.container}  showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
+      <View style={styles.fixedContainer}>
       <View style={styles.profileContainer}>
-              <ProfilePic uri={profilePicUri} size={80} />
-            </View>
-            
-            <View style={styles.searchContainer}>
-              <SearchBar onSearch={setBooks} setSearchPerformed={setSearchPerformed} />
-            </View>
-            
-            {searchPerformed && (
-              <View style={styles.searchResult}>
-                <SearchResult books={books} searchPerformed={searchPerformed} />
-              </View>
-            )}
+        <ProfilePic uri={profilePicUri} size={80} />
+      </View>
+
+      <View style={styles.searchContainer}>
+        <SearchBar onSearch={setBooks} setSearchPerformed={setSearchPerformed} />
+      </View>
+      </View>
+
+      {/* <View style={styles.searchResult}>
+        <SearchResult books={books} searchPerformed={searchPerformed} />
+      </View> */}
+      <ScrollView showsVerticalScrollIndicator={true}>
 
       <ScrollView style={styles.scrollContent1} showsVerticalScrollIndicator={false}>
+        <View style={styles.searchResult}>
+          {searchPerformed ? (
+            <SearchResult books={books} searchPerformed={searchPerformed} />
+          ) : (
             <ExploreSection />
+          )}
+        </View>
       </ScrollView>
 
       <ScrollView style={styles.scrollContent2} showsVerticalScrollIndicator={false}>
+
          <BestSeller/>
       </ScrollView>
-
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.bookRead}>
+      <View style={styles.bookRead}>
           <BookRead/>
+      </View>
       </ScrollView>
 
-      </ScrollView>
+      <ChatBubble />
+
+  </View>
+    
   );
 }
 
@@ -76,33 +88,38 @@ const styles = StyleSheet.create({
     backgroundColor: "#f6f6f4",
     padding: 10,
   },
+  fixedContainer:{
+    position:'absolute',
+    top:0,
+    right:0,
+    left:0,
+    zIndex:10,
+    height:110,
+    backgroundColor:'#f6f6f4'
+  },
   profileContainer: {
     position: "absolute",
     top: 33,
     right: 20,
+
   },
   searchContainer: {
     top: 45,
     left: 10,
   },
   searchResult: {
-    position: 'absolute', 
-    top: 100, 
-    left: 10,
-    right: 10,
-    zIndex: 10,
+    flex: 1,
+    marginTop: 40,
+    paddingHorizontal: 10,
   },
   scrollContent1: {
     marginTop: 80,
-    padding:10
   }, 
    scrollContent2: {
     marginTop: 40,
-    padding:10
   }, 
    bookRead: {
     marginTop: 40,
-    padding:10
   },
 
 });
