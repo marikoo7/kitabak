@@ -19,6 +19,8 @@ const isSmallScreen = width < 500;
   const [activeTab, setActiveTab] = useState("description");
   const [favorites, setFavorites] = useState([]); 
   const [checked, setChecked] = React.useState(false);
+  const [showExtraOption, setShowExtraOption] = useState(false);
+
   
 
   const handleAddToLibrary = async () => {
@@ -64,62 +66,52 @@ const isSmallScreen = width < 500;
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <TouchableWithoutFeedback onPress={handleModalClose}>
           <View style={styles.modalBackground}
-           
           onPress={onClose}
-
           >
             <View style={styles.modalContent}>
             <View style={{ 
-  flexDirection: isSmallScreen ? "column" : "row", 
-  alignItems: isSmallScreen ? "center" : "flex-start"
+            flexDirection: isSmallScreen ? "column" : "row", 
+            alignItems: isSmallScreen ? "center" : "flex-start"
 }}>
 
-              <View style={{ alignItems: "center" }}>
-                
+  <View style={{ alignItems: "center" }}>
     <Image source={{ uri: book?.cover }} style={styles.bookImageInDialog} />
-    
-    
-    <View style={{ flexDirection: "row", marginTop: 10 ,marginRight:10}}>
-    <TouchableOpacity onPress={handleAddToLibrary} style={styles.addToLibraryBtn}>
+    <View style={{ flexDirection: "row", marginTop: 10, marginRight: 10, alignItems: "center" }}>
+  <TouchableOpacity 
+    onPress={() => setShowExtraOption(!showExtraOption)} 
+    style={styles.arrowBtn}
+  >
+    <Icon name={showExtraOption ? "chevron-up" : "chevron-down"} size={14} color="#7d7362" />
+  </TouchableOpacity>
+
+  <TouchableOpacity onPress={handleAddToLibrary} style={styles.addToLibraryBtn}>
     <Text style={styles.addToLibraryText}>Add to library</Text>
   </TouchableOpacity>
 
- < TouchableOpacity
-  onPress={() => {
-    if (book?. bookpdf) {
-      router.push({
-        pathname: "/bookreading",
-        params: { 
-          url: book.bookpdf,
-          title: book.title
-        }
-      });
-      onClose(); 
-    } else {
-      alert("رابط الكتاب غير متاح");
+  <TouchableOpacity onPress={() => handletoggleFavorite(book)} style={styles.favoriteBtn}>
+    <Icon
+      name={favorites.some((b) => b.id === book.id) ? "heart" : "heart-o"}
+      size={20}
+      color={favorites.some((b) => b.id === book.id) ? "red" : "#ccc"}
+    />
+  </TouchableOpacity>
+</View>
+{showExtraOption && (
+  <TouchableOpacity
+  onPress={async () => {
+    const user = auth.currentUser;
+    if (user && book) {
+      const bookRef = doc(db, "users", user.uid, "booksRead", book.id);
+      await setDoc(bookRef, book);
+      alert("تمت إضافة الكتاب إلى الكتب المقروءة");
     }
   }}
-  style={{
-      backgroundColor: "#4CAF50",
-      paddingVertical: 8,
-      paddingHorizontal: 15,
-      borderRadius: 20,
-      justifyContent: "center",
-      alignItems: "center",
-      marginLeft: 10,
-    }}
+    style={[styles.addToLibraryBtn, { marginTop: 10,marginLeft:40, alignSelf: "flex-start" }]}
   >
-    <Text style={{ color: "#fff", fontWeight: "bold" }}>Read</Text>
+    <Text style={styles.addToLibraryText}>Add to Finished</Text>
   </TouchableOpacity>
-      
-     <TouchableOpacity onPress={() => handletoggleFavorite(book)} style={styles.favoriteBtn}>
-                       <Icon
-                         name={favorites.some((b) => b.id === book.id) ? "heart" : "heart-o"}
-                         size={20}
-                         color={favorites.some((b) => b.id === book.id) ? "red" : "#ccc"}
-                       />
-                     </TouchableOpacity>
-    </View>
+)}
+
   </View>
   <View style={{ flex: 1, marginLeft: 15, justifyContent: "space-around" }}>
     <AirbnbRating
@@ -294,6 +286,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  arrowBtn:{
+    marginLeft: 8,
+    backgroundColor: "#e7e6df",
+    padding: 8,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  }
   
 });
 
