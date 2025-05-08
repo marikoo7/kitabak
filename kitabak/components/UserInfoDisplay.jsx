@@ -1,10 +1,12 @@
-import { View, StyleSheet, Dimensions, Text, TouchableOpacity, Platform, TextInput, Modal } from "react-native";
-import { useState } from "react";
+
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity, Platform, TextInput, Modal, Alert } from "react-native";
+import { useState, useEffect } from "react";
 import * as ImagePicker from "expo-image-picker";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../kitabak-server/firebaseConfig";
 import ProfilePic from "../components/profilePic";
 import { Ionicons } from "@expo/vector-icons";
+import  supabase  from "../kitabak-server/supabaseClient";
 
 const { width } = Dimensions.get("window");
 const isWeb = Platform.OS === 'web';
@@ -13,29 +15,85 @@ export default function UserInfoDisplay({ user, selectedProfilePic, setProfilePi
   const [isEditing, setIsEditing] = useState(false);
   const [newUsername, setNewUsername] = useState(userData.username);
   const profilePicSize = isWeb ? Math.min(150, width * 0.19) : 120;
-  
-  const pickImageAsync = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 1,
-    });
 
-    if (!result.canceled) {
-      setProfilePic(result.assets[0].uri);
-
-      if (user) {
+  // ✅ جلب الصورة من Firestore عند بداية تشغيل الكومبوننت
+  useEffect(() => {
+    const fetchProfilePic = async () => {
+      if (user?.uid) {
         const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
-
         if (userDoc.exists()) {
-          const existingData = userDoc.data();
-          await setDoc(userDocRef, {
-            ...existingData,
-            profilePic: result.assets[0].uri,
-          }, { merge: true });
+          const data = userDoc.data();
+          if (data.profilePic) {
+            setProfilePic(data.profilePic);
+          }
         }
       }
+    };
+
+    fetchProfilePic();
+  }, [user]);
+
+  const pickImageAsync = async () => {
+    if (isWeb) {
+      await pickImage("gallery");
+    } else {
+      Alert.alert(
+        "Choose image source",
+        "Pick image from camera or gallery?",
+        [
+          { text: "Camera", onPress: () => pickImage("camera") },
+          { text: "Gallery", onPress: () => pickImage("gallery") },
+          { text: "Cancel", style: "cancel" }
+        ],
+        { cancelable: true }
+      );
+    }
+  };
+
+  const pickImage = async (source) => {
+    let result;
+    if (source === "camera") {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        alert("Camera permission denied.");
+        return;
+      }
+      result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 1 });
+    } else {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        alert("Media library permission denied.");
+        return;
+      }
+      result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 1 });
+    }
+
+    if (!result.canceled) {
+      const fileUri = result.assets[0].uri;
+      const filePath = `${user.uid}/profile.jpg`; // ✅ مسار ثابت لكل يوزر
+
+      const response = await fetch(fileUri);
+      const blob = await response.blob();
+
+      const { error } = await supabase.storage
+        .from('profile-pics')
+        .upload(filePath, blob, {
+          cacheControl: '3600',
+          upsert: true,
+        });
+
+      if (error) {
+        alert("Error uploading image: " + error.message);
+        return;
+      }
+
+      const imageUrl = `https://fkifydtvjuxzywprvtub.supabase.co/storage/v1/object/public/profile-pics/${filePath}`;
+
+      // ✅ حفظ رابط الصورة في Firestore
+      const userDocRef = doc(db, "users", user.uid);
+      await setDoc(userDocRef, { profilePic: imageUrl }, { merge: true });
+      setProfilePic(imageUrl);
     } else {
       alert("You did not select any image.");
     }
@@ -44,17 +102,11 @@ export default function UserInfoDisplay({ user, selectedProfilePic, setProfilePi
   const handleUpdateUsername = async () => {
     if (user && newUsername.trim() !== "") {
       const userDocRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userDocRef);
+      await setDoc(userDocRef, {
+        username: newUsername.trim()
+      }, { merge: true });
 
-      if (userDoc.exists()) {
-        const existingData = userDoc.data();
-        await setDoc(userDocRef, {
-          ...existingData,
-          username: newUsername.trim(),
-        }, { merge: true });
-
-        setUserData({ ...userData, username: newUsername.trim() });
-      }
+      setUserData({ ...userData, username: newUsername.trim() });
       setIsEditing(false);
     }
   };
@@ -70,15 +122,8 @@ export default function UserInfoDisplay({ user, selectedProfilePic, setProfilePi
           <Text style={[styles.username, isWeb && styles.webUsername]}>
             {userData.username}
           </Text>
-          <TouchableOpacity 
-            onPress={() => setIsEditing(true)} 
-            style={styles.editIcon}
-          >
-            <Ionicons 
-              name="pencil-sharp" 
-              size={isWeb ? Math.min(32, width * 0.05) : 24} 
-              color="#7d7362" 
-            />
+          <TouchableOpacity onPress={() => setIsEditing(true)} style={styles.editIcon}>
+            <Ionicons name="pencil-sharp" size={isWeb ? Math.min(32, width * 0.05) : 24} color="#7d7362" />
           </TouchableOpacity>
         </View>
         <Text style={[styles.email, isWeb && styles.webEmail]}>
@@ -86,16 +131,10 @@ export default function UserInfoDisplay({ user, selectedProfilePic, setProfilePi
         </Text>
       </View>
 
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={isEditing}
-        onRequestClose={() => setIsEditing(false)}
-      >
+      <Modal animationType="fade" transparent={true} visible={isEditing} onRequestClose={() => setIsEditing(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Username</Text>
-            
             <TextInput
               style={styles.usernameInput}
               value={newUsername}
@@ -104,22 +143,14 @@ export default function UserInfoDisplay({ user, selectedProfilePic, setProfilePi
               placeholderTextColor="#b0ad9a"
               autoFocus
             />
-            
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]} 
-                onPress={() => {
-                  setNewUsername(userData.username);
-                  setIsEditing(false);
-                }}
-              >
+              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => {
+                setNewUsername(userData.username);
+                setIsEditing(false);
+              }}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.saveButton]} 
-                onPress={handleUpdateUsername}
-              >
+              <TouchableOpacity style={[styles.modalButton, styles.saveButton]} onPress={handleUpdateUsername}>
                 <Text style={styles.saveButtonText}>Save</Text>
               </TouchableOpacity>
             </View>
@@ -188,10 +219,7 @@ const styles = StyleSheet.create({
     width: isWeb ? '40%' : '80%',
     alignItems: 'center',
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5
