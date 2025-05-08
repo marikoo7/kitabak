@@ -2,7 +2,7 @@ import { View, StyleSheet, TouchableOpacity, Modal ,TouchableWithoutFeedback } f
 import React, { useEffect, useState,useCallback } from "react";
 import { doc, setDoc ,deleteDoc,getDoc} from "firebase/firestore";
 import { db, auth } from "../kitabak-server/firebaseConfig";
-import { Text,  Image, ScrollView, } from "react-native";
+import { Text,  Image, ScrollView,Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { Button, AirbnbRating, CheckBox } from "@rneui/themed"; // npm install @rneui/themed @rneui/base
 import { useWindowDimensions } from "react-native";
@@ -22,16 +22,60 @@ const isSmallScreen = width < 500;
   const [showExtraOption, setShowExtraOption] = useState(false);
 
   
-
   const handleAddToLibrary = async () => {
     const user = auth.currentUser;
-    if (user && book) {
-      const bookRef = doc(db, "users", user.uid, "library", book.id);
-      await setDoc(bookRef, book);
-      router.push("/(tabs)/library");
-      onClose();
+    if (user && book && book.id) {
+      try {
+        const bookRef = doc(db, "users", user.uid, "library", String(book.id));
+        const bookDataForLibrary = {
+          id: String(book.id),
+          title: book.title || "No Title",
+          author: book.author || "Unknown Author",
+          cover: book.cover || null,
+          description: book.description || "No description available.",
+          page_count: book.page_count || 0,
+          genres: book.genres || [],
+        };
+        await setDoc(bookRef, bookDataForLibrary);
+        Alert.alert("تم بنجاح", `"${bookDataForLibrary.title}" تم إضافته إلى مكتبتك.`);
+        router.push('/(tabs)/library'); 
+        if (onClose) onClose();
+      } catch (error) {
+        console.error("Error adding to library:", error);
+        Alert.alert("خطأ", "حدث خطأ أثناء إضافة الكتاب للمكتبة.");
+      }
+    } else {
+      Alert.alert("تنبيه", "يجب تسجيل الدخول وتحديد كتاب لإضافته للمكتبة.");
     }
   };
+  
+  const handleAddToFinished = async () => {
+    const user = auth.currentUser;
+    if (user && book && book.id) {
+      const finishedBookRef = doc(db, "users", user.uid, "booksRead", String(book.id));
+      try {
+        const bookDataForFinished = {
+          id: String(book.id),
+          title: book.title || "No Title",
+          author: book.author || "Unknown Author",
+          cover: book.cover || null,
+          description: book.description || "No description available.",
+          page_count: book.page_count || 0,
+          genres: book.genres || [],
+          rating: book.rating || 0,
+          finishedTimestamp: new Date().toISOString(),
+        };
+        await setDoc(finishedBookRef, bookDataForFinished);
+        Alert.alert(`"${bookDataForFinished.title}" تمت إضافته إلى قائمة الكتب المقروءة.`);
+        if (onClose) onClose();
+      } catch (error) {
+        console.error("Error adding to finished books: ", error);
+        Alert.alert("خطأ", "حدث خطأ أثناء إضافة الكتاب إلى قائمة المقروءة.");
+      }
+    } else {
+      Alert.alert("تنبيه", "يجب تسجيل الدخول وتحديد كتاب لإضافته للمقروءة.");
+    }
+  }
 
   const handletoggleFavorite = (book) => {
     if (favorites.some((b) => b.id === book.id)) {
@@ -96,17 +140,11 @@ const isSmallScreen = width < 500;
     />
   </TouchableOpacity>
 </View>
+
 {showExtraOption && (
   <TouchableOpacity
-  onPress={async () => {
-    const user = auth.currentUser;
-    if (user && book) {
-      const bookRef = doc(db, "users", user.uid, "booksRead", book.id);
-      await setDoc(bookRef, book);
-      alert("تمت إضافة الكتاب إلى الكتب المقروءة");
-    }
-  }}
-    style={[styles.addToLibraryBtn, { marginTop: 10,marginLeft:40, alignSelf: "flex-start" }]}
+    onPress={handleAddToFinished} 
+    style={[styles.addToLibraryBtn, { marginTop: 10, marginLeft: 40, alignSelf: "flex-start" }]} 
   >
     <Text style={styles.addToLibraryText}>Add to Finished</Text>
   </TouchableOpacity>
