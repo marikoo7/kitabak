@@ -5,14 +5,14 @@ export const sendMessageToGPT = async (message) => {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "openai/gpt-3.5-turbo", // تقدر تغيّره لنموذج تاني زي gpt-4 أو claude
+        model: "openai/gpt-3.5-turbo", 
         messages: [{ role: "user", content: message }],
       },
       {
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer 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",
-          "HTTP-Referer": "https://kitabak/kitabak/app.com", // اختياري، بس لازم تحط اسم تطبيقك لو طلبوه
+          "HTTP-Referer": "https://kitabak/kitabak/app.com", 
         },
       }
     );
