@@ -1,60 +1,52 @@
-import { View, TextInput, Button, Text, ScrollView, StyleSheet } from 'react-native';
-import { useState, useEffect } from 'react';
-import { sendMessageToGPT } from '../components/sendMessageToGPT';  
+import React, { useState } from 'react';
+import { View, TextInput, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import ChatMessage from '../components/ChatMessage';
+import { sendMessageToGPT } from '../components/sendMessageToGPT';
+import { useEffect } from 'react';
 
-export default function ChatWindow({ onClose }) {
+export default function ChatWindow() {
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-
-  useEffect(() => {
-    const welcomeMessage = {
-      sender: "ai",
-      text: "مرحبًا! كيف يمكنني مساعدتك؟",
-    };
-    setMessages([welcomeMessage]);
-  }, []);
+  const [input, setInput] = useState('');
 
   const sendMessage = async () => {
     if (!input.trim()) return;
 
-    const userMessage = { sender: "user", text: input };
+    const userMessage = { sender: 'user', text: input };
     setMessages(prev => [...prev, userMessage]);
-    setInput("");
+    setInput('');
 
-    try {
-      const aiResponse = await sendMessageToGPT(input);
-      const aiMessage = {
-        sender: "ai",
-        text: aiResponse,
-      };
-      setMessages(prev => [...prev, aiMessage]);
-    } catch (err) {
-      setMessages(prev => [...prev, { sender: "ai", text: "حدث خطأ." }]);
-    }
+    const aiReply = await sendMessageToGPT(input);
+    const aiMessage = { sender: 'ai', text: aiReply };
+
+    setMessages(prev => [...prev, aiMessage]);
   };
+  useEffect(() => {
+    const welcome = { sender: 'ai', text: 'مرحبًا! كيف يمكنني مساعدتك اليوم؟ 🤖' };
+    setMessages([welcome]);
+  }, []);
 
   return (
-    <View style={styles.chatContainer}>
-      <ScrollView style={styles.chatContent}>
-        {messages.map((msg, i) => (
-          <Text key={i} style={{ color: msg.sender === "user" ? "blue" : "green" }}>
-            {msg.text}
-          </Text>
-        ))}
-      </ScrollView>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.window}>
+      <FlatList
+        data={messages}
+        renderItem={({ item }) => <ChatMessage message={item} />}
+        keyExtractor={(item, index) => index.toString()}
+        contentContainerStyle={styles.messageList}
+      />
       <TextInput
+        style={styles.input}
+        placeholder="اكتب رسالتك هنا..."
         value={input}
         onChangeText={setInput}
-        placeholder="اكتب سؤالك..."
-        style={styles.input}
-        onSubmitEditing={sendMessage} 
+        onSubmitEditing={sendMessage}
+        returnKeyType="send"
       />
-      <Button title="إرسال" onPress={sendMessage} />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
+
 const styles = StyleSheet.create({
-  chatContainer: {
+  window: {
     position: 'absolute',
     bottom: 100,
     right: 20,
@@ -66,17 +58,13 @@ const styles = StyleSheet.create({
     elevation: 5,
     zIndex: 999,
   },
-  chatContent: {
-    flex: 1,
-    marginBottom: 10,
+  messageList: {
+    flexGrow: 1,
   },
   input: {
-    borderColor: '#ccc',
-    borderWidth: 1,
-    marginBottom: 5,
-    paddingHorizontal: 10,
-    height: 40,
-    borderRadius: 5,
+    borderTopWidth: 1,
+    borderColor: '#ddd',
+    padding: 10,
+    fontSize: 16,
   },
 });
-
