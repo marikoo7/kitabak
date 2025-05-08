@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+import BookComponent from './book'; 
 import {
   View,
   FlatList,
@@ -12,6 +13,9 @@ import {
 
 export default function BookList({ books, searchPerformed }) {
   const [selectedBook, setSelectedBook] = useState(null);
+  const [bookForDetails, setBookForDetails] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
+
 
   if (searchPerformed && !books.length) {
     return <Text style={styles.noResults}>No books found</Text>;
@@ -33,12 +37,10 @@ export default function BookList({ books, searchPerformed }) {
         )}
       />
 
-      
       {selectedBook && (
         <Modal transparent={true} animationType="slide" visible={true}>
           <View style={styles.modalBackground}>
             <View style={styles.modalContainer}>
-
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setSelectedBook(null)}
@@ -52,32 +54,32 @@ export default function BookList({ books, searchPerformed }) {
               />
 
               <Text style={styles.modalTitle}>{selectedBook.title}</Text>
+              <Text style={styles.modalAuthor}>BY {selectedBook.author}</Text>
 
-              <Text style={styles.descriptionTitle}>Description</Text>
-              <Text style={styles.modalDescription}>
-                {selectedBook.description}
-              </Text>
-
-              <View style={styles.starContainer}>
-                {[...Array(5)].map((_, index) => (
-                  <Text
-                    key={index}
-                    style={[
-                      styles.star,
-                      index < 3 ? styles.yellowStar : styles.grayStar,
-                    ]}
-                  >
-                    ★
-                  </Text>
-                ))}
-              </View>
-
-              <TouchableOpacity style={styles.addButton}>
-                <Text style={styles.addButtonText}>Add to Library</Text>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => {
+                  setShowDetails(true);
+                  setBookForDetails(selectedBook);
+                  setSelectedBook(null);
+                }}
+              >
+                <Text style={styles.addButtonText}>SHOW MORE DETAILS</Text>
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
+      )}
+
+      {showDetails && bookForDetails && (
+        <BookComponent
+          book={bookForDetails}
+          visible={true}
+          onClose={() => {
+            setShowDetails(false);
+            setBookForDetails(null);
+          }}
+        />
       )}
     </View>
   );
@@ -116,22 +118,6 @@ const styles = StyleSheet.create({
     color: "#b0ad9a",
     marginLeft: 15,
   },
-  starContainer: {
-    flexDirection: "row",
-    marginTop: 10,
-   
-  },
-  star: {
-    fontSize: 30,
-    marginRight: 3,
-   marginBottom:10,
-  },
-  yellowStar: {
-    color: "yellow",
-  },
-  grayStar: {
-    color: "#ccc",
-  },
   modalBackground: {
     flex: 1,
     backgroundColor: "#000000aa",
@@ -139,7 +125,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalContainer: {
-    width: "80%",
+    width: "50%",
     backgroundColor: "#fff",
     borderRadius: 20,
     padding: 20,
@@ -166,17 +152,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 5,
   },
-  descriptionTitle: {
-    fontSize: 30,
-     marginBottom: 10, 
-     fontFamily: 'MalibuSunday',
-     color:"#58504"
-    
-  },
-  modalDescription: {
-    fontSize: 14,
-    color: "#444",
-    marginBottom: 20,
+  modalAuthor: {
+    fontSize: 16,
+    color: "#777",
+    marginBottom: 10,
   },
   addButton: {
     backgroundColor: "#333",
