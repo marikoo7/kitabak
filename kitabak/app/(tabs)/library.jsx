@@ -12,7 +12,8 @@ import { db, auth } from "../../kitabak-server/firebaseConfig";
 import { collection, getDocs, setDoc, deleteDoc, doc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { useRouter } from "expo-router";
+import { useRouter,usePathname } from "expo-router";
+import BookComponent from "../../components/book"; 
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -22,7 +23,8 @@ export default function LibraryScreen() {
   const [favoriteBooks, setFavoriteBooks] = useState([]);
   const [showFavorites, setShowFavorites] = useState(false);
   const [isFavorite, setIsFavorite] = useState({});
-  const router = useRouter(); // إضافة useRouter للتنقل بين الشاشات
+  const [selectedBook, setSelectedBook] = useState(null);
+  const [dialogVisible, setDialogVisible] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -79,10 +81,6 @@ export default function LibraryScreen() {
 
   const booksToShow = showFavorites ? favoriteBooks : libraryBooks;
 
-  const handleBookPress = (bookId) => {
-    router.push(`/bookDetails/${bookId}`); // التنقل إلى صفحة تفاصيل الكتاب
-  };
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Library</Text>
@@ -113,7 +111,12 @@ export default function LibraryScreen() {
               : 0;
           return (
             <View style={styles.bookCardGrid}>
-              <TouchableOpacity onPress={() => handleBookPress(item.id)}>
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedBook(item);
+                  setDialogVisible(true);
+                }}
+              >
                 <Image
                   source={{
                     uri:
@@ -141,6 +144,16 @@ export default function LibraryScreen() {
           );
         }}
       />
+
+      
+      {selectedBook && (
+        <BookComponent
+          book={selectedBook}
+          visible={dialogVisible}
+          onClose={() => setDialogVisible(false)}
+          readOnly={true} 
+        />
+      )}
     </View>
   );
 }
