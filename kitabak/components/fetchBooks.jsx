@@ -1,5 +1,5 @@
 import { collection, getDocs } from "firebase/firestore";
-import { db } from "../kitabak-server/firebaseConfig"; // تأكد أن لديك firebase.js فيه db
+import { db } from "../kitabak-server/firebaseConfig"; 
 
 export const fetchBooks = async () => {
   const booksRef = collection(db, "books");
