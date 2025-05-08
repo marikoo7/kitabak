@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { doc, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { db, auth } from "../../kitabak-server/firebaseConfig"; 
+import { db, auth } from "../../kitabak-server/firebaseConfig";
 import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
 import SearchResult from "@/components/searchResult";
 import ExploreSection from "@/components/explore";
 import BestSeller from "@/components/bestSeller";
-import BookRead from "@/components/bookRead"
-
+import BookRead from "@/components/bookRead";
+import ChatBubble from "@/components/ChatBubble";
 
 export default function HomeScreen() {
   const [books, setBooks] = useState([]);
@@ -26,83 +26,90 @@ export default function HomeScreen() {
             setProfilePicUri(userData.profilePic);
           }
         });
-
-        // Clean up Firestore listener when user changes the profile pic/logs out
+        // Clean up Firestore listener when user changes/logs out
         return () => unsubscribeDoc();
       } else {
         // User logged out
         setProfilePicUri(null);
       }
     });
-
     return () => unsubscribeAuth();
   }, []);
 
   return (
-    <ScrollView style={styles.container}  showsVerticalScrollIndicator={false}>
-      <View style={styles.profileContainer}>
-              <ProfilePic uri={profilePicUri} size={80} />
-            </View>
-            
-            <View style={styles.searchContainer}>
-              <SearchBar onSearch={setBooks} setSearchPerformed={setSearchPerformed} />
-            </View>
-            
-            {searchPerformed && (
-              <View style={styles.searchResult}>
-                <SearchResult books={books} searchPerformed={searchPerformed} />
-              </View>
-            )}
+    <View style={styles.rootContainer}>
+      <ScrollView style={styles.scrollableContentContainer} showsVerticalScrollIndicator={false}>
+        <View style={styles.profileContainer}>
+          <ProfilePic uri={profilePicUri} size={80} />
+        </View>
 
-      <ScrollView style={styles.scrollContent1} showsVerticalScrollIndicator={false}>
-            <ExploreSection />
-      </ScrollView>
+        <View style={styles.searchContainer}>
+          <SearchBar onSearch={setBooks} setSearchPerformed={setSearchPerformed} />
+        </View>
 
-      <ScrollView style={styles.scrollContent2} showsVerticalScrollIndicator={false}>
-         <BestSeller/>
-      </ScrollView>
+        {searchPerformed && (
+          <View style={styles.searchResult}>
+            <SearchResult books={books} searchPerformed={searchPerformed} />
+          </View>
+        )}
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.bookRead}>
-          <BookRead/>
-      </ScrollView>
+        <View style={styles.scrollContent1}>
+          <ExploreSection />
+        </View>
 
+        <View style={styles.scrollContent2}>
+          <BestSeller />
+        </View>
+
+        <View style={styles.bookRead}>
+          <BookRead />
+        </View>
       </ScrollView>
+      <ChatBubble style={styles.chatBubbleFixed} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  rootContainer: {
     flex: 1,
     backgroundColor: "#f6f6f4",
+  },
+  scrollableContentContainer: {
     padding: 10,
   },
   profileContainer: {
     position: "absolute",
     top: 33,
     right: 20,
+    zIndex: 20,
   },
   searchContainer: {
     top: 45,
-    left: 10,
+    marginBottom: 10,
   },
   searchResult: {
-    position: 'absolute', 
-    top: 100, 
+    position: 'absolute',
+    top: 100,
     left: 10,
     right: 10,
     zIndex: 10,
+    backgroundColor: "#f6f6f4",
   },
   scrollContent1: {
     marginTop: 80,
-    padding:10
-  }, 
-   scrollContent2: {
-    marginTop: 40,
-    padding:10
-  }, 
-   bookRead: {
-    marginTop: 40,
-    padding:10
   },
-
+  scrollContent2: {
+    marginTop: 40,
+  },
+  bookRead: {
+    marginTop: 40,
+    marginBottom: 80,
+  },
+  chatBubbleFixed: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    zIndex: 100,
+  },
 });

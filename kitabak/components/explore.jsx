@@ -29,7 +29,7 @@ const ExploreSection = () => {
         const booksData = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        }));
+        })).filter((book) => book.bestseller === false);
         setBooks(shuffle(booksData));
       } catch (error) {
         console.error("Error fetching books:", error);
