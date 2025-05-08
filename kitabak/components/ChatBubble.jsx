@@ -1,6 +1,6 @@
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useState } from 'react';
-import ChatWindow from './ChatWindow';
+import ChatWindow from '../components/ChatWindow';
 
 export default function ChatBubble() {
   const [visible, setVisible] = useState(false);
