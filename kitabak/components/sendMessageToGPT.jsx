@@ -2,7 +2,7 @@ import axios from "axios";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../kitabak-server/firebaseConfig";
 
-const API_KEY = "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";
+const API_KEY = "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";
 let cachedBooks = [];
 
 
@@ -44,7 +44,7 @@ export const sendMessageToGPT = async (message) => {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${API_KEY}`,
-          "HTTP-Referer": "https://kitabak/kitabak/app.com", // تأكدي من الرابط
+          "HTTP-Referer": "https://kitabak/kitabak/app.com", 
         },
       }
     );
