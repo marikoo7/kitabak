@@ -1,68 +1,37 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
-  FlatList,
-  Image,
-  ScrollView,
-  SafeAreaView,
-} from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { onAuthStateChanged } from "firebase/auth";
-import {
-  doc,
-  collection,
-  onSnapshot,
-  getDocs,
-  setDoc,
-  deleteDoc,
-} from "firebase/firestore";
-import { db, auth } from "../../kitabak-server/firebaseConfig";
-import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
 import SearchResult from "@/components/searchResult";
-import BookComponent from "../../components/book";
-
+import { doc, onSnapshot, collection, getDocs ,setDoc ,deleteDoc} from "firebase/firestore";
+import { db, auth } from "../../kitabak-server/firebaseConfig";
+import { Text, FlatList, Image, ScrollView, SafeAreaView } from "react-native";
+import { useRouter } from "expo-router";
+import BookComponent from "../../components/book"
 export default function StoreScreen() {
   const [allBooks, setAllBooks] = useState([]);
   const [book, setbook] = useState(null);
   const [dialogVisible, setDialogVisible] = useState(false);
   const [searchPerformed, setSearchPerformed] = useState(false);
   const [profilePicUri, setProfilePicUri] = useState(null);
-  const [userUID, setUserUID] = useState(null);
-  const [isFavoriteMap, setIsFavoriteMap] = useState({});
   const router = useRouter();
-
-  const handleBookPress = (book) => {
-    setbook(book);
-    setDialogVisible(true);
-  };
-
-  // 🧠 تحميل الفيفورت من فايربيز
-  const fetchFavorites = async (uid) => {
-    const favsSnapshot = await getDocs(collection(db, "users", uid, "favorites"));
-    const favIds = favsSnapshot.docs.map((doc) => doc.id);
-    const favMap = {};
-    favIds.forEach((id) => (favMap[id] = true));
-    setIsFavoriteMap(favMap);
-  };
+  
+  
+    const handleBookPress = (book) => {
+      setbook(book);
+      setDialogVisible(true);
+    };
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setUserUID(user.uid);
-
         const userDocRef = doc(db, "users", user.uid);
         const unsubscribeDoc = onSnapshot(userDocRef, (userDoc) => {
           if (userDoc.exists()) {
             setProfilePicUri(userDoc.data().profilePic);
           }
         });
-
-        await fetchFavorites(user.uid); // تحميل الفيفورت
-
         return () => unsubscribeDoc();
       } else {
         setProfilePicUri(null);
@@ -89,67 +58,129 @@ export default function StoreScreen() {
     fetchBooks();
   }, []);
 
-  const renderBook = ({ item }) => (
-    <View style={styles.bookContainer}>
-      <TouchableOpacity onPress={() => handleBookPress(item)}>
-        <Image source={{ uri: item.cover }} style={styles.bookImage} />
-      </TouchableOpacity>
-      <Text style={styles.bookTitle} numberOfLines={1}>
-        {item.title}
-      </Text>
-      <Text style={styles.bookAuthor}>{item.author}</Text>
-    </View>
+  const fictionalBooks = allBooks.filter(
+    (book) => book.genres && Array.isArray(book.genres) && book.genres.includes("Fictional")
   );
-
-  const categorizeBooks = (genre) =>
-    allBooks.filter(
-      (book) =>
-        book.genres && Array.isArray(book.genres) && book.genres.includes(genre)
-    );
-
+    const nonFictionBooks = allBooks.filter(
+    (book) => book.genres && Array.isArray(book.genres) && book.genres.includes("Non-Fictional")
+  );
+  
+  const fantasyBooks = allBooks.filter(
+    (book) => book.genres && Array.isArray(book.genres) && book.genres.includes("Fantasy")
+  );
+  
+  const historicalBooks = allBooks.filter(
+    (book) => book.genres && Array.isArray(book.genres) && book.genres.includes("Historical")
+  );
+  const romanticBooks = allBooks.filter(
+    (book) => book.genres && Array.isArray(book.genres) && book.genres.includes("Romantic")
+  );
+  
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <ScrollView
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.profileContainer}>
-          <ProfilePic uri={profilePicUri} size={80} />
-        </View>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.profileContainer}>
+        <ProfilePic uri={profilePicUri} size={80} />
+      </View>
 
-        <View style={styles.searchContainer}>
-          <SearchBar onSearch={setbook} setSearchPerformed={setSearchPerformed} />
-        </View>
+      <View style={styles.searchContainer}>
+        <SearchBar onSearch={setbook} setSearchPerformed={setSearchPerformed} />
+      </View>
 
-        <View style={styles.searchResult}>
-          <SearchResult books={book} searchPerformed={searchPerformed} />
-        </View>
-
-        {["Fictional", "Non-Fictional", "Fantasy", "Historical", "Romantic"].map(
-          (genre, index) => (
-            <View key={genre}>
-              <Text style={index === 0 ? styles.header1 : styles.header}>
-                {genre}
-              </Text>
-              <FlatList
-                data={categorizeBooks(genre)}
-                keyExtractor={(item) => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                renderItem={renderBook}
-              />
-            </View>
-          )
-        )}
-
-        <BookComponent
-          book={book}
-          visible={dialogVisible}
-          onClose={async () => {
-            setDialogVisible(false);
-            if (userUID) await fetchFavorites(userUID); // ✅ تحديث الفيفورت بعد غلق المودال
-          }}
+      <View style={styles.searchResult}>
+        <SearchResult books={book} searchPerformed={searchPerformed} />
+      </View>
+        <Text style={styles.header1}>Fictional</Text>
+        <FlatList
+          data={fictionalBooks}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => handleBookPress(item)}>
+              
+              <View style={styles.bookContainer}>
+                <Image source={{ uri: item.cover }} style={styles.bookImage} />
+                <Text style={styles.bookTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</Text>
+                <Text style={styles.bookAuthor}>{item.author}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
         />
+
+        <Text style={styles.header}>Non-Fictional</Text>
+        <FlatList
+          data={nonFictionBooks}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => handleBookPress(item)}>
+            <View style={styles.bookContainer}>
+              <Image source={{ uri: item.cover }} style={styles.bookImage} />
+              <Text style={styles.bookTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</Text>
+              <Text style={styles.bookAuthor}>{item.author}</Text>
+            </View>
+            </TouchableOpacity>
+          )}
+        />
+
+        <Text style={styles.header}>Fantasy</Text>
+        <FlatList
+          data={fantasyBooks}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => handleBookPress(item)}>
+            <View style={styles.bookContainer}>
+              <Image source={{ uri: item.cover }} style={styles.bookImage} />
+              <Text style={styles.bookTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</Text>
+              <Text style={styles.bookAuthor}>{item.author}</Text>
+            </View>
+            </TouchableOpacity>
+          )}
+        />
+
+        <Text style={styles.header}>Historical</Text>
+        <FlatList
+          data={historicalBooks}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => handleBookPress(item)}>
+            <View style={styles.bookContainer}>
+              <Image source={{ uri: item.cover }} style={styles.bookImage} />
+              <Text style={styles.bookTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</Text>
+              <Text style={styles.bookAuthor}>{item.author}</Text>
+            </View>
+            </TouchableOpacity>
+          )}
+        />
+        <Text style={styles.header}>Romantic</Text>
+        <FlatList
+          data={romanticBooks}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => handleBookPress(item)}>
+            <View style={styles.bookContainer}>
+              <Image source={{ uri: item.cover }} style={styles.bookImage} />
+              <Text style={styles.bookTitle} numberOfLines={1} ellipsizeMode="tail">{item.title}</Text>
+              <Text style={styles.bookAuthor}>{item.author}</Text>
+            </View>
+            </TouchableOpacity>
+          )}
+        />
+        <BookComponent
+        book={book}
+        visible={dialogVisible}
+        onClose={() => setDialogVisible(false)}
+      />
+
+        
       </ScrollView>
     </SafeAreaView>
   );
@@ -157,6 +188,7 @@ export default function StoreScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 16 },
+
   profileContainer: {
     position: "absolute",
     top: 45,
@@ -167,8 +199,8 @@ const styles = StyleSheet.create({
     left: 5,
   },
   searchResult: {
-    position: "absolute",
-    top: 100,
+    position: 'absolute', 
+    top: 100, 
     left: 20,
     right: 10,
     zIndex: 10,
@@ -179,7 +211,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 100,
     color: "#7d7362",
-    fontFamily: "MalibuSunday",
+    fontFamily: 'MalibuSunday',
   },
   header: {
     fontSize: 40,
@@ -187,13 +219,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 20,
     color: "#7d7362",
-    fontFamily: "MalibuSunday",
+    fontFamily: 'MalibuSunday',
   },
   bookContainer: {
     padding: 10,
     borderRadius: 10,
-    alignItems: "center",
-    position: "relative",
+    alignItems: "flex-start", 
+
   },
   bookImage: {
     width: 200,
@@ -207,9 +239,11 @@ const styles = StyleSheet.create({
     color: "#7d7362",
     maxWidth: 170,
     lineHeight: 20,
+    textAlign: 'left',
   },
   bookAuthor: {
     fontSize: 10,
     color: "#b0ad9a",
   },
+  
 });
