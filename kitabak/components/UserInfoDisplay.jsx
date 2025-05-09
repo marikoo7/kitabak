@@ -6,7 +6,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../kitabak-server/firebaseConfig";
 import ProfilePic from "../components/profilePic";
 import { Ionicons } from "@expo/vector-icons";
-import  supabase  from "../kitabak-server/supabaseClient";
+import supabase from "../kitabak-server/supabaseClient";
 
 const { width } = Dimensions.get("window");
 const isWeb = Platform.OS === 'web';
@@ -16,7 +16,6 @@ export default function UserInfoDisplay({ user, selectedProfilePic, setProfilePi
   const [newUsername, setNewUsername] = useState(userData.username);
   const profilePicSize = isWeb ? Math.min(150, width * 0.19) : 120;
 
-  // ✅ جلب الصورة من Firestore عند بداية تشغيل الكومبوننت
   useEffect(() => {
     const fetchProfilePic = async () => {
       if (user?.uid) {
@@ -30,7 +29,6 @@ export default function UserInfoDisplay({ user, selectedProfilePic, setProfilePi
         }
       }
     };
-
     fetchProfilePic();
   }, [user]);
 
@@ -53,49 +51,53 @@ export default function UserInfoDisplay({ user, selectedProfilePic, setProfilePi
 
   const pickImage = async (source) => {
     let result;
-    if (source === "camera") {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        alert("Camera permission denied.");
-        return;
-      }
-      result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 1 });
-    } else {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        alert("Media library permission denied.");
-        return;
-      }
-      result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 1 });
-    }
-
-    if (!result.canceled) {
-      const fileUri = result.assets[0].uri;
-      const filePath = `${user.uid}/profile.jpg`; // ✅ مسار ثابت لكل يوزر
-
-      const response = await fetch(fileUri);
-      const blob = await response.blob();
-
-      const { error } = await supabase.storage
-        .from('profile-pics')
-        .upload(filePath, blob, {
-          cacheControl: '3600',
-          upsert: true,
-        });
-
-      if (error) {
-        alert("Error uploading image: " + error.message);
-        return;
+    try {
+      if (source === "camera") {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          alert("Camera permission denied.");
+          return;
+        }
+        result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 1 });
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          alert("Media library permission denied.");
+          return;
+        }
+        result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 1 });
       }
 
-      const imageUrl = `https://fkifydtvjuxzywprvtub.supabase.co/storage/v1/object/public/profile-pics/${filePath}`;
+      if (!result.canceled) {
+        const fileUri = result.assets[0].uri;
+        const filePath = `${user.uid}/profile.jpg`;
 
-      // ✅ حفظ رابط الصورة في Firestore
-      const userDocRef = doc(db, "users", user.uid);
-      await setDoc(userDocRef, { profilePic: imageUrl }, { merge: true });
-      setProfilePic(imageUrl);
-    } else {
-      alert("You did not select any image.");
+        const response = await fetch(fileUri);
+        const blob = await response.blob();
+
+        const { error } = await supabase.storage
+          .from('profile-pics')
+          .upload(filePath, blob, {
+            cacheControl: '3600',
+            upsert: true,
+          });
+
+        if (error) {
+          alert("Error uploading image: " + error.message);
+          return;
+        }
+
+        const imageUrl = `https://fkifydtvjuxzywprvtub.supabase.co/storage/v1/object/public/profile-pics/${filePath}?t=${Date.now()}`;
+
+        const userDocRef = doc(db, "users", user.uid);
+        await setDoc(userDocRef, { profilePic: imageUrl }, { merge: true });
+        setProfilePic(imageUrl);
+      } else {
+        alert("You did not select any image.");
+      }
+    } catch (err) {
+      console.error("Image upload failed", err);
+      alert("Failed to process the image.");
     }
   };
 
@@ -271,3 +273,10 @@ const styles = StyleSheet.create({
     fontSize: isWeb ? 16 : 14,
   },
 });
+
+
+
+
+
+
+
