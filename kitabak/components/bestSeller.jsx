@@ -46,6 +46,7 @@ const ExploreSection = () => {
         author: book.author,
         description: book.description,
         image: book.cover || book.image || "https://via.placeholder.com/200x300",
+      bookpdf: book.bookpdf || "",
       });
 
       console.log("✅ Book added to Firestore library:", book.title);

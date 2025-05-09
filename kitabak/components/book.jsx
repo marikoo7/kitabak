@@ -32,6 +32,7 @@ const isSmallScreen = width < 500;
           title: book.title || "No Title",
           author: book.author || "Unknown Author",
           cover: book.cover || null,
+          bookpdf: book.bookpdf || "",
           description: book.description || "No description available.",
           page_count: book.page_count || 0,
           genres: book.genres || [],

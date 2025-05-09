@@ -57,6 +57,7 @@ const ExploreSection = () => {
         image: book.cover || book.image || "https://via.placeholder.com/200x300",
         page_count: book.page_count || 0,
         reviews: book.reviews || 0,
+        bookpdf: book.bookpdf || "",
       });
 
       alert(`"${book.title}" has been added to your library.`);
