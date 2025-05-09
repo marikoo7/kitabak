@@ -1,30 +1,81 @@
-import { View, StyleSheet, TouchableOpacity, Modal ,TouchableWithoutFeedback } from "react-native";
-import React, { useEffect, useState,useCallback } from "react";
-import { doc, setDoc ,deleteDoc,getDoc} from "firebase/firestore";
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  TouchableWithoutFeedback,
+  Text,
+  Image,
+  ScrollView,
+  Alert,
+  useWindowDimensions,
+} from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import {
+  doc,
+  setDoc,
+  deleteDoc,
+  getDoc,
+} from "firebase/firestore";
 import { db, auth } from "../kitabak-server/firebaseConfig";
-import { Text,  Image, ScrollView,Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { Button, AirbnbRating, CheckBox } from "@rneui/themed"; // npm install @rneui/themed @rneui/base
-import { useWindowDimensions } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome"; 
+import { AirbnbRating } from "@rneui/themed";
+import Icon from "react-native-vector-icons/FontAwesome";
 
 export default function BookComponent({ book, visible, onClose }) {
-
   const { width } = useWindowDimensions();
-const isSmallScreen = width < 500; 
-  
+  const isSmallScreen = width < 500;
+  const router = useRouter();
+
+  const [activeTab, setActiveTab] = useState("description");
+  const [showExtraOption, setShowExtraOption] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+
   const toggleModal = useCallback(() => {
     onClose();
   }, [onClose]);
-  const [activeTab, setActiveTab] = useState("description");
-  const [favorites, setFavorites] = useState([]); 
-  const [checked, setChecked] = React.useState(false);
-  const [showExtraOption, setShowExtraOption] = useState(false);
 
-  
+  // ✅ check favorite status when modal opens
+  useEffect(() => {
+    const checkFavorite = async () => {
+      const user = auth.currentUser;
+      if (user && book?.id && visible) {
+        const favRef = doc(db, "users", user.uid, "favorites", String(book.id));
+        const docSnap = await getDoc(favRef);
+        setIsFavorite(docSnap.exists());
+      }
+    };
+    checkFavorite();
+  }, [visible, book]);
+
+  const handleToggleFavorite = async () => {
+    const user = auth.currentUser;
+    if (!user || !book?.id) return;
+
+    const favRef = doc(db, "users", user.uid, "favorites", String(book.id));
+
+    if (isFavorite) {
+      await deleteDoc(favRef);
+      setIsFavorite(false);
+      Alert.alert("تم الحذف", `"${book.title}" تمت إزالته من المفضلة.`);
+    } else {
+      const bookData = {
+        id: String(book.id),
+        title: book.title || "No Title",
+        author: book.author || "Unknown Author",
+        cover: book.cover || null,
+        bookpdf: book.bookpdf || "",
+        description: book.description || "",
+      };
+      await setDoc(favRef, bookData);
+      setIsFavorite(true);
+      Alert.alert("تم الإضافة", `"${book.title}" تمت إضافته إلى المفضلة.`);
+    }
+  };
+
   const handleAddToLibrary = async () => {
     const user = auth.currentUser;
-    if (user && book && book.id) {
+    if (user && book?.id) {
       try {
         const bookRef = doc(db, "users", user.uid, "library", String(book.id));
         const bookDataForLibrary = {
@@ -39,7 +90,7 @@ const isSmallScreen = width < 500;
         };
         await setDoc(bookRef, bookDataForLibrary);
         Alert.alert("تم بنجاح", `"${bookDataForLibrary.title}" تم إضافته إلى مكتبتك.`);
-        router.push('/(tabs)/library'); 
+        router.push("/(tabs)/library");
         if (onClose) onClose();
       } catch (error) {
         console.error("Error adding to library:", error);
@@ -49,10 +100,10 @@ const isSmallScreen = width < 500;
       Alert.alert("تنبيه", "يجب تسجيل الدخول وتحديد كتاب لإضافته للمكتبة.");
     }
   };
-  
+
   const handleAddToFinished = async () => {
     const user = auth.currentUser;
-    if (user && book && book.id) {
+    if (user && book?.id) {
       const finishedBookRef = doc(db, "users", user.uid, "booksRead", String(book.id));
       try {
         const bookDataForFinished = {
@@ -76,104 +127,88 @@ const isSmallScreen = width < 500;
     } else {
       Alert.alert("تنبيه", "يجب تسجيل الدخول وتحديد كتاب لإضافته للمقروءة.");
     }
-  }
-
-  const handletoggleFavorite = (book) => {
-    if (favorites.some((b) => b.id === book.id)) {
-      setFavorites(favorites.filter((b) => b.id !== book.id));
-    } else {
-      setFavorites([...favorites, book]);
-    }
   };
 
-  
-  const router = useRouter();
-
-  
   const handleModalClose = (e) => {
-    
     if (e.target === e.currentTarget) {
       onClose();
     }
   };
-  
-  
 
   return (
-    
-        <Modal
-          visible={visible}
-          animationType="fade"
-          transparent={true}
-          onRequestClose={toggleModal}
-           presentationStyle="overFullScreen"
-        >
-          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-          <TouchableWithoutFeedback onPress={handleModalClose}>
-          <View style={styles.modalBackground}
-          onPress={onClose}
-          >
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent={true}
+      onRequestClose={toggleModal}
+      presentationStyle="overFullScreen"
+    >
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <TouchableWithoutFeedback onPress={handleModalClose}>
+          <View style={styles.modalBackground}>
             <View style={styles.modalContent}>
-            <View style={{ 
-            flexDirection: isSmallScreen ? "column" : "row", 
-            alignItems: isSmallScreen ? "center" : "flex-start"
-}}>
+              <View
+                style={{
+                  flexDirection: isSmallScreen ? "column" : "row",
+                  alignItems: isSmallScreen ? "center" : "flex-start",
+                }}
+              >
+                <View style={{ alignItems: "center" }}>
+                  <Image source={{ uri: book?.cover }} style={styles.bookImageInDialog} />
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      marginTop: 10,
+                      marginRight: 10,
+                      alignItems: "center",
+                    }}
+                  >
+                    <TouchableOpacity
+                      onPress={() => setShowExtraOption(!showExtraOption)}
+                      style={styles.arrowBtn}
+                    >
+                      <Icon name={showExtraOption ? "chevron-up" : "chevron-down"} size={14} color="#7d7362" />
+                    </TouchableOpacity>
 
-  <View style={{ alignItems: "center" }}>
-    <Image source={{ uri: book?.cover }} style={styles.bookImageInDialog} />
-    <View style={{ flexDirection: "row", marginTop: 10, marginRight: 10, alignItems: "center" }}>
-  <TouchableOpacity 
-    onPress={() => setShowExtraOption(!showExtraOption)} 
-    style={styles.arrowBtn}
-  >
-    <Icon name={showExtraOption ? "chevron-up" : "chevron-down"} size={14} color="#7d7362" />
-  </TouchableOpacity>
+                    <TouchableOpacity onPress={handleAddToLibrary} style={styles.addToLibraryBtn}>
+                      <Text style={styles.addToLibraryText}>Add to library</Text>
+                    </TouchableOpacity>
 
-  <TouchableOpacity onPress={handleAddToLibrary} style={styles.addToLibraryBtn}>
-    <Text style={styles.addToLibraryText}>Add to library</Text>
-  </TouchableOpacity>
+                    <TouchableOpacity onPress={handleToggleFavorite} style={styles.favoriteBtn}>
+                      <Icon
+                        name={isFavorite ? "heart" : "heart-o"}
+                        size={20}
+                        color={isFavorite ? "red" : "#ccc"}
+                      />
+                    </TouchableOpacity>
+                  </View>
 
-  <TouchableOpacity onPress={() => handletoggleFavorite(book)} style={styles.favoriteBtn}>
-    <Icon
-      name={favorites.some((b) => b.id === book.id) ? "heart" : "heart-o"}
-      size={20}
-      color={favorites.some((b) => b.id === book.id) ? "red" : "#ccc"}
-    />
-  </TouchableOpacity>
-</View>
+                  {showExtraOption && (
+                    <TouchableOpacity
+                      onPress={handleAddToFinished}
+                      style={[styles.addToLibraryBtn, {
+                        marginTop: 10,
+                        marginLeft: 40,
+                        alignSelf: "flex-start"
+                      }]}
+                    >
+                      <Text style={styles.addToLibraryText}>Add to Finished</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
 
-{showExtraOption && (
-  <TouchableOpacity
-    onPress={handleAddToFinished} 
-    style={[styles.addToLibraryBtn, { marginTop: 10, marginLeft: 40, alignSelf: "flex-start" }]} 
-  >
-    <Text style={styles.addToLibraryText}>Add to Finished</Text>
-  </TouchableOpacity>
-)}
-
-  </View>
-  <View style={{ flex: 1, marginLeft: 15, justifyContent: "space-around" }}>
-    <AirbnbRating
-      isDisabled={true}
-      showRating={false}
-      starStyle={{ color: "#585047" }}
-      size={25}
-    />
-    <Text style={styles.bookTitleInDialog}>{book?.title}</Text>
-    <Text style={styles.bookAuthorInDialog}>by {book?.author}</Text>
-    <Text style={{ color: "#7d7362" }}>Genres:</Text>
-    <Text style={styles.bookCategory}>{book?.genres}</Text>
-  </View>
-</View>
+                <View style={{ flex: 1, marginLeft: 15, justifyContent: "space-around" }}>
+                  <AirbnbRating isDisabled={true} showRating={false} size={25} />
+                  <Text style={styles.bookTitleInDialog}>{book?.title}</Text>
+                  <Text style={styles.bookAuthorInDialog}>by {book?.author}</Text>
+                  <Text style={{ color: "#7d7362" }}>Genres:</Text>
+                  <Text style={styles.bookCategory}>{book?.genres}</Text>
+                </View>
+              </View>
 
               <View style={{ alignItems: "center", marginBottom: 10 }}>
-                <Text style={{ color: '#7d7362' }}>Rate This Book</Text>
-                <AirbnbRating
-                  defaultRating={book?.rating || 0}
-                  showRating={false}
-                  starStyle={{ color: "#585047" }}
-                  size={25}
-                />
+                <Text style={{ color: "#7d7362" }}>Rate This Book</Text>
+                <AirbnbRating defaultRating={book?.rating || 0} showRating={false} size={25} />
               </View>
 
               <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 20 }}>
@@ -186,7 +221,10 @@ const isSmallScreen = width < 500;
                     marginRight: 20,
                   }}
                 >
-                  <Text style={{ color: "#7d7362", fontWeight: activeTab === "description" ? "bold" : "normal" }}>
+                  <Text style={{
+                    color: "#7d7362",
+                    fontWeight: activeTab === "description" ? "bold" : "normal",
+                  }}>
                     Description
                   </Text>
                 </TouchableOpacity>
@@ -199,7 +237,10 @@ const isSmallScreen = width < 500;
                     borderBottomColor: "#7d7362",
                   }}
                 >
-                  <Text style={{ color: "#7d7362", fontWeight: activeTab === "reviews" ? "bold" : "normal" }}>
+                  <Text style={{
+                    color: "#7d7362",
+                    fontWeight: activeTab === "reviews" ? "bold" : "normal",
+                  }}>
                     Reviews
                   </Text>
                 </TouchableOpacity>
@@ -218,54 +259,25 @@ const isSmallScreen = width < 500;
               </View>
             </View>
           </View>
-          </TouchableWithoutFeedback>
-          </ScrollView>
-        </Modal>
-      
+        </TouchableWithoutFeedback>
+      </ScrollView>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  profileContainer: {
-    position: "absolute",
-    top: 33,
-    right: 20,
-  },
-  searchContainer: {
-    top: 45,
-    left: 10,
-  },
-  searchResult: {
-    marginTop: 40,
-    paddingHorizontal: 10,
-  },
-  header: {
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 10,
-    marginTop: 20,
-    color: "#7d7362",
-  },
-  bookContainer: {
-    padding: 10,
-    borderRadius: 10,
+  modalBackground: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
-  bookImage: {
-    width: 200,
-    height: 300,
-    borderRadius: 8,
-  },
-  bookTitle: {
-    fontSize: 12,
-    fontWeight: "bold",
-    marginTop: 5,
-    color: "#7d7362",
-  },
-  bookAuthor: {
-    fontSize: 10,
-    color: "#b0ad9a",
+  modalContent: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 10,
+    width: "90%",
+    maxWidth: 400,
   },
   bookImageInDialog: {
     width: 220,
@@ -274,7 +286,6 @@ const styles = StyleSheet.create({
   },
   bookTitleInDialog: {
     fontWeight: "bold",
-    fontFamily: 'MalibuSunday',
     fontSize: 28,
     marginBottom: 5,
     color: "#7d7362",
@@ -284,27 +295,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   bookCategory: {
-    fontFamily: 'MalibuSunday',
     marginTop: 10,
     marginBottom: 15,
-    color:'#b0ad9a'
+    color: "#b0ad9a",
   },
   bookdescription: {
-    fontFamily: 'Arial',
-    color:'#b0ad9a'
-  },
-  modalBackground: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 10,
-    width: '90%',
-    maxWidth: 400,
+    color: "#b0ad9a",
   },
   addToLibraryBtn: {
     backgroundColor: "#7d7362",
@@ -313,6 +309,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
+    marginLeft: 8,
   },
   addToLibraryText: {
     color: "#fff",
@@ -324,15 +321,13 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
-  },
-  arrowBtn:{
     marginLeft: 8,
+  },
+  arrowBtn: {
     backgroundColor: "#e7e6df",
     padding: 8,
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-  }
-  
+  },
 });
-

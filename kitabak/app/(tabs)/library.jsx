@@ -1,5 +1,4 @@
-// File: LibraryScreen.jsx
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -115,17 +114,16 @@ export default function LibraryScreen() {
   };
 
   const handleFavoriteToggle = async (bookId) => {
-    const isBookFavorite = isFavorite[bookId];
-    if (isBookFavorite) {
-      await deleteDoc(doc(db, "users", userUID, "favorites", bookId));
+    const bookIsFav = favoriteBooks.some((book) => book.id === bookId);
 
+    if (bookIsFav) {
+      await deleteDoc(doc(db, "users", userUID, "favorites", bookId));
+      setFavoriteBooks((prev) => prev.filter((book) => book.id !== bookId));
       setIsFavorite((prev) => {
         const updated = { ...prev };
-        delete updated[bookId];
+        updated[bookId] = false;
         return updated;
       });
-
-      setFavoriteBooks((prev) => prev.filter((book) => book.id !== bookId));
     } else {
       let bookToAdd = libraryBooks.find((book) => book.id === bookId);
 
@@ -139,6 +137,7 @@ export default function LibraryScreen() {
           bookToAdd = allBooks.find((b) => b.id === bookId);
         } catch (e) {
           console.error("Error fetching book from books collection:", e);
+          return;
         }
       }
 
@@ -155,7 +154,9 @@ export default function LibraryScreen() {
   const handleRemoveBook = async (bookId) => {
     try {
       await deleteDoc(doc(db, "users", userUID, "library", bookId));
-      setLibraryBooks((prevBooks) => prevBooks.filter((book) => book.id !== bookId));
+      setLibraryBooks((prevBooks) =>
+        prevBooks.filter((book) => book.id !== bookId)
+      );
       setIsFavorite((prev) => {
         const updated = { ...prev };
         delete updated[bookId];
@@ -166,7 +167,10 @@ export default function LibraryScreen() {
     }
   };
 
-  const booksToShow = formatData(showFavorites ? favoriteBooks : libraryBooks, numColumns);
+  const booksToShow = useMemo(() => {
+    const data = showFavorites ? favoriteBooks : libraryBooks;
+    return formatData([...data], numColumns);
+  }, [favoriteBooks, libraryBooks, showFavorites, numColumns]);
 
   const handleBookPress = (book) => {
     router.push({
@@ -181,10 +185,19 @@ export default function LibraryScreen() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={[styles.headerRow, { marginBottom: 12, marginTop: -20 }]}> 
-        <SearchBar onSearch={setSearchResults} setSearchPerformed={setSearchPerformed} />
+      <View style={styles.profileContainer}>
         <ProfilePic uri={profilePicUri} size={80} />
       </View>
+
+      <View style={styles.searchContainer}>
+        <SearchBar onSearch={setSearchResults} setSearchPerformed={setSearchPerformed} />
+      </View>
+
+      {searchPerformed && (
+        <View style={styles.searchResult}>
+          <SearchResult books={searchResults} searchPerformed={searchPerformed} />
+        </View>
+      )}
 
       <Text style={styles.title}>Library</Text>
 
@@ -202,57 +215,72 @@ export default function LibraryScreen() {
         />
       </TouchableOpacity>
 
-      {searchPerformed ? (
-        <View style={{ paddingHorizontal: SPACING }}>
-          <SearchResult books={searchResults} searchPerformed={searchPerformed} />
-        </View>
-      ) : (
-        <FlatList
-          key={listKey}
-          data={booksToShow}
-          keyExtractor={(item) => item.id}
-          numColumns={numColumns}
-          contentContainerStyle={{ paddingBottom: 16, paddingHorizontal: 12 }}
-          columnWrapperStyle={{ gap: SPACING }}
-          renderItem={({ item }) => {
-            if (item.empty) return <View style={{ width: CARD_WIDTH }} />;
-            const percent = item.page_count && item.pages_read ? Math.floor((item.pages_read / item.page_count) * 100) : 0;
-            return (
-              <View style={[styles.bookCardGrid, { width: CARD_WIDTH }]}> 
-                <TouchableOpacity onPress={() => handleBookPress(item)}>
-                  <Image
-                    source={{ uri: item.image || item.cover || "https://via.placeholder.com/140x210" }}
-                    style={{ width: CARD_WIDTH, height: CARD_WIDTH * 1.5, borderRadius: 8, resizeMode: "cover" }}
+      <FlatList
+        key={listKey}
+        data={booksToShow}
+        keyExtractor={(item) => item.id}
+        numColumns={numColumns}
+        contentContainerStyle={{ paddingBottom: 16, paddingHorizontal: 12 }}
+        columnWrapperStyle={{ gap: SPACING }}
+        renderItem={({ item }) => {
+          if (item.empty) return <View style={{ width: CARD_WIDTH }} />;
+          const percent =
+            item.page_count && item.pages_read
+              ? Math.floor((item.pages_read / item.page_count) * 100)
+              : 0;
+          return (
+            <View style={[styles.bookCardGrid, { width: CARD_WIDTH }]}>
+              <TouchableOpacity onPress={() => handleBookPress(item)}>
+                <Image
+                  source={{
+                    uri:
+                      item.image ||
+                      item.cover ||
+                      "https://via.placeholder.com/140x210",
+                  }}
+                  style={{
+                    width: CARD_WIDTH,
+                    height: CARD_WIDTH * 1.5,
+                    borderRadius: 8,
+                    resizeMode: "cover",
+                  }}
+                />
+              </TouchableOpacity>
+
+              <View style={styles.bottomContainer}>
+                <Text style={styles.progressText}>{percent}%</Text>
+                <TouchableOpacity
+                  onPress={() => handleFavoriteToggle(item.id)}
+                  style={styles.favoriteIcon}
+                >
+                  <Icon
+                    name={
+                      showFavorites || favoriteBooks.some((b) => b.id === item.id)
+                        ? "heart"
+                        : "heart-o"
+                    }
+                    size={20}
+                    color={
+                      showFavorites || favoriteBooks.some((b) => b.id === item.id)
+                        ? "red"
+                        : "#7d7362"
+                    }
                   />
                 </TouchableOpacity>
-
-                <View style={styles.bottomContainer}>
-                  <Text style={styles.progressText}>{percent}%</Text>
-                  <TouchableOpacity
-                    onPress={() => handleFavoriteToggle(item.id)}
-                    style={styles.favoriteIcon}
-                  >
-                    <Icon
-                      name={showFavorites ? "heart" : isFavorite[item.id] ? "heart" : "heart-o"}
-                      size={20}
-                      color={showFavorites || isFavorite[item.id] ? "red" : "#7d7362"}
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                {!showFavorites && (
-                  <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={() => handleRemoveBook(item.id)}
-                  >
-                    <Text style={styles.removeButtonText}>Remove</Text>
-                  </TouchableOpacity>
-                )}
               </View>
-            );
-          }}
-        />
-      )}
+
+              {!showFavorites && (
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => handleRemoveBook(item.id)}
+                >
+                  <Text style={styles.removeButtonText}>Remove</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          );
+        }}
+      />
     </ScrollView>
   );
 }
@@ -261,14 +289,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: SPACING,
-    paddingTop: 50,
-    backgroundColor: '#f4f6f5',
+    paddingTop: 20,
+    backgroundColor: "#f4f6f5",
   },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 4,
+  profileContainer: {
+    position: "absolute",
+    top: 33,
+    right: 20,
+  },
+  searchContainer: {
+    top: 45,
+    left: 10,
+  },
+  searchResult: {
+    position: "absolute",
+    top: 100,
+    left: 10,
+    right: 10,
+    zIndex: 10,
   },
   title: {
     fontSize: 26,
@@ -276,6 +314,7 @@ const styles = StyleSheet.create({
     color: "#585047",
     marginBottom: 10,
     fontFamily: "serif",
+    marginTop: 60,
   },
   favoriteTab: {
     flexDirection: "row",

@@ -24,7 +24,6 @@ import ProfilePic from "@/components/profilePic";
 import SearchBar from "@/components/searchBar";
 import SearchResult from "@/components/searchResult";
 import BookComponent from "../../components/book";
-import Icon from "react-native-vector-icons/FontAwesome";
 
 export default function StoreScreen() {
   const [allBooks, setAllBooks] = useState([]);
@@ -41,18 +40,13 @@ export default function StoreScreen() {
     setDialogVisible(true);
   };
 
-  const handleToggleFavorite = async (book) => {
-    const isFav = isFavoriteMap[book.id];
-    try {
-      if (isFav) {
-        await deleteDoc(doc(db, "users", userUID, "favorites", book.id));
-      } else {
-        await setDoc(doc(db, "users", userUID, "favorites", book.id), book);
-      }
-      setIsFavoriteMap((prev) => ({ ...prev, [book.id]: !isFav }));
-    } catch (error) {
-      console.error("Failed to toggle favorite:", error);
-    }
+  // 🧠 تحميل الفيفورت من فايربيز
+  const fetchFavorites = async (uid) => {
+    const favsSnapshot = await getDocs(collection(db, "users", uid, "favorites"));
+    const favIds = favsSnapshot.docs.map((doc) => doc.id);
+    const favMap = {};
+    favIds.forEach((id) => (favMap[id] = true));
+    setIsFavoriteMap(favMap);
   };
 
   useEffect(() => {
@@ -67,14 +61,7 @@ export default function StoreScreen() {
           }
         });
 
-        // Load favorites
-        const favsSnapshot = await getDocs(
-          collection(db, "users", user.uid, "favorites")
-        );
-        const favIds = favsSnapshot.docs.map((doc) => doc.id);
-        const favMap = {};
-        favIds.forEach((id) => (favMap[id] = true));
-        setIsFavoriteMap(favMap);
+        await fetchFavorites(user.uid); // تحميل الفيفورت
 
         return () => unsubscribeDoc();
       } else {
@@ -106,16 +93,6 @@ export default function StoreScreen() {
     <View style={styles.bookContainer}>
       <TouchableOpacity onPress={() => handleBookPress(item)}>
         <Image source={{ uri: item.cover }} style={styles.bookImage} />
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => handleToggleFavorite(item)}
-        style={styles.heartIcon}
-      >
-        <Icon
-          name={isFavoriteMap[item.id] ? "heart" : "heart-o"}
-          size={20}
-          color={isFavoriteMap[item.id] ? "red" : "#7d7362"}
-        />
       </TouchableOpacity>
       <Text style={styles.bookTitle} numberOfLines={1}>
         {item.title}
@@ -168,7 +145,10 @@ export default function StoreScreen() {
         <BookComponent
           book={book}
           visible={dialogVisible}
-          onClose={() => setDialogVisible(false)}
+          onClose={async () => {
+            setDialogVisible(false);
+            if (userUID) await fetchFavorites(userUID); // ✅ تحديث الفيفورت بعد غلق المودال
+          }}
         />
       </ScrollView>
     </SafeAreaView>
@@ -231,11 +211,5 @@ const styles = StyleSheet.create({
   bookAuthor: {
     fontSize: 10,
     color: "#b0ad9a",
-  },
-  heartIcon: {
-    position: "absolute",
-    top: 15,
-    right: 15,
-    zIndex: 2,
   },
 });
