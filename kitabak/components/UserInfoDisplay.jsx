@@ -1,6 +1,6 @@
-
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, Platform, TextInput, Modal, Alert } from "react-native";
 import { useState, useEffect } from "react";
+import {Buffer} from 'buffer';
 import * as ImagePicker from "expo-image-picker";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../kitabak-server/firebaseConfig";
@@ -58,46 +58,61 @@ export default function UserInfoDisplay({ user, selectedProfilePic, setProfilePi
           alert("Camera permission denied.");
           return;
         }
-        result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 1 });
-      } else {
+        result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 1, base64: true });
+      } else { 
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
           alert("Media library permission denied.");
           return;
         }
-        result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 1 });
+        result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 1, base64: true });
       }
 
-      if (!result.canceled) {
-        const fileUri = result.assets[0].uri;
-        const filePath = `${user.uid}/profile.jpg`;
+      if (!result.canceled && result.assets && result.assets.length > 0) { 
+        if (!result.assets[0].base64) {
+          console.error("DEBUG: Base64 data is missing from asset even after requesting it.");
+          alert("Failed to get image data (base64 missing). Please try again.");
+          return;
+        }
+        const base64Img = result.assets[0].base64;
+        const filePath = `${user.uid}/profile.jpg`; 
 
-        const response = await fetch(fileUri);
-        const blob = await response.blob();
-
+        const contentType = result.assets[0].mimeType || 'image/jpeg'; 
         const { error } = await supabase.storage
           .from('profile-pics')
-          .upload(filePath, blob, {
-            cacheControl: '3600',
+          .upload(filePath, Buffer.from(base64Img, 'base64'), {
+            contentType: contentType, 
             upsert: true,
           });
 
         if (error) {
+          console.error("DEBUG: Supabase upload error:", JSON.stringify(error, null, 2)); 
           alert("Error uploading image: " + error.message);
           return;
         }
 
-        const imageUrl = `https://fkifydtvjuxzywprvtub.supabase.co/storage/v1/object/public/profile-pics/${filePath}?t=${Date.now()}`;
+        const { data: publicURLData } = supabase.storage.from('profile-pics').getPublicUrl(filePath);
+
+        if (!publicURLData || !publicURLData.publicUrl) {
+            console.error("DEBUG: Failed to get public URL from Supabase response:", publicURLData);
+            alert("Error: Could not retrieve image URL after upload.");
+            return;
+        }
+        
+        const imageUrl = `${publicURLData.publicUrl}?t=${Date.now()}`;
+
 
         const userDocRef = doc(db, "users", user.uid);
         await setDoc(userDocRef, { profilePic: imageUrl }, { merge: true });
         setProfilePic(imageUrl);
+      } else if (result.canceled) {
       } else {
-        alert("You did not select any image.");
+        alert("You did not select any image or no assets found.");
       }
     } catch (err) {
-      console.error("Image upload failed", err);
-      alert("Failed to process the image.");
+      console.error("DEBUG: Image pick/upload failed in catch block:", err); // شوفي الخطأ هنا
+      console.error("DEBUG: Error object stringified:", JSON.stringify(err, null, 2));
+      alert("Failed to process the image. Please check console for details.");
     }
   };
 
@@ -270,13 +285,5 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: isWeb ? 16 : 14,
-  },
+    fontSize: isWeb ? 16:14,},
 });
-
-
-
-
-
-
-
