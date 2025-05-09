@@ -118,6 +118,13 @@ export default function LibraryScreen() {
     const isBookFavorite = isFavorite[bookId];
     if (isBookFavorite) {
       await deleteDoc(doc(db, "users", userUID, "favorites", bookId));
+
+      setIsFavorite((prev) => {
+        const updated = { ...prev };
+        delete updated[bookId];
+        return updated;
+      });
+
       setFavoriteBooks((prev) => prev.filter((book) => book.id !== bookId));
     } else {
       let bookToAdd = libraryBooks.find((book) => book.id === bookId);
@@ -138,12 +145,11 @@ export default function LibraryScreen() {
       if (bookToAdd) {
         await setDoc(doc(db, "users", userUID, "favorites", bookId), bookToAdd);
         setFavoriteBooks((prev) => [...prev, bookToAdd]);
+        setIsFavorite((prev) => ({ ...prev, [bookId]: true }));
       } else {
         console.error("Book not found anywhere.");
       }
     }
-
-    setIsFavorite((prev) => ({ ...prev, [bookId]: !isBookFavorite }));
   };
 
   const handleRemoveBook = async (bookId) => {
@@ -227,9 +233,9 @@ export default function LibraryScreen() {
                     style={styles.favoriteIcon}
                   >
                     <Icon
-                      name={isFavorite[item.id] ? "heart" : "heart-o"}
+                      name={showFavorites ? "heart" : isFavorite[item.id] ? "heart" : "heart-o"}
                       size={20}
-                      color={isFavorite[item.id] ? "red" : "#7d7362"}
+                      color={showFavorites || isFavorite[item.id] ? "red" : "#7d7362"}
                     />
                   </TouchableOpacity>
                 </View>
