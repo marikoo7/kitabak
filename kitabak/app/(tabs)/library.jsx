@@ -172,7 +172,34 @@ export default function LibraryScreen() {
     return formatData([...data], numColumns);
   }, [favoriteBooks, libraryBooks, showFavorites, numColumns]);
 
-  const handleBookPress = (book) => {
+const handleBookPress = async (book) => {
+    const newPagesRead = book.pages_read
+      ? Math.min(
+          book.page_count,
+          book.pages_read + Math.ceil(book.page_count * 0.03)
+        )
+      : Math.ceil(book.page_count * 0.03);
+
+    try {
+      await setDoc(
+        doc(db, "users", userUID, "library", book.id),
+        {
+          ...book,
+          pages_read: newPagesRead,
+        },
+        { merge: true }
+      );
+
+      setLibraryBooks((prevBooks) =>
+        prevBooks.map((b) =>
+          b.id === book.id ? { ...b, pages_read: newPagesRead } : b
+        )
+      );
+    } catch (error) {
+      console.error("Error updating pages_read:", error);
+    }
+  
+
     router.push({
       pathname: "/bookreading",
       params: {
@@ -182,6 +209,8 @@ export default function LibraryScreen() {
       },
     });
   };
+  
+   
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
