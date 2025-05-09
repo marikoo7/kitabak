@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, ScrollView, Text, ActivityIndicator } from "react-native";
 import { doc, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../../kitabak-server/firebaseConfig";
@@ -15,21 +15,26 @@ export default function HomeScreen() {
   const [books, setBooks] = useState([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
   const [profilePicUri, setProfilePicUri] = useState(null);
+  const [currentUser, setCurrentUser] = useState(undefined);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
       if (user) {
         const userDocRef = doc(db, "users", user.uid);
         const unsubscribeDoc = onSnapshot(userDocRef, (userDoc) => {
           if (userDoc.exists()) {
             const userData = userDoc.data();
             setProfilePicUri(userData.profilePic);
+          } else {
+            setProfilePicUri(null);
           }
+        }, (error) => {
+            console.error("Error fetching user document for profile pic:", error);
+            setProfilePicUri(null);
         });
-        // Clean up Firestore listener when user changes/logs out
         return () => unsubscribeDoc();
       } else {
-        // User logged out
         setProfilePicUri(null);
       }
     });
@@ -61,8 +66,12 @@ export default function HomeScreen() {
           <BestSeller />
         </View>
 
-        <View style={styles.bookRead}>
-          <BookRead />
+        <View style={styles.bookReadContainer}>
+          {currentUser === undefined ? (
+            <ActivityIndicator size="large" color="#585047" style={{ marginTop: 20 }}/>
+          ) : (
+            <BookRead userId={currentUser ? currentUser.uid : null} />
+          )}
         </View>
       </ScrollView>
       <ChatBubble style={styles.chatBubbleFixed} />
@@ -74,8 +83,6 @@ const styles = StyleSheet.create({
   rootContainer: {
     flex: 1,
     backgroundColor: "#f6f6f4",
-  },
-  scrollableContentContainer: {
     padding: 10,
   },
   profileContainer: {
@@ -86,7 +93,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     top: 45,
-    marginBottom: 10,
+    left: 10,
   },
   searchResult: {
     position: 'absolute',
@@ -94,22 +101,23 @@ const styles = StyleSheet.create({
     left: 10,
     right: 10,
     zIndex: 10,
-    backgroundColor: "#f6f6f4",
   },
   scrollContent1: {
     marginTop: 80,
+    padding: 10,
   },
   scrollContent2: {
     marginTop: 40,
+    padding: 10,
   },
-  bookRead: {
+  bookReadContainer: {
     marginTop: 40,
-    marginBottom: 80,
+    marginBottom: 40,
   },
   chatBubbleFixed: {
     position: 'absolute',
     bottom: 20,
     right: 20,
     zIndex: 100,
-  },
+  }
 });

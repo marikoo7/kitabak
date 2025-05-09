@@ -14,12 +14,12 @@ import {
 import { useRouter } from "expo-router";
 import { Picker } from "@react-native-picker/picker";
 import { db, auth } from "../kitabak-server/firebaseConfig";
-import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, where, orderBy, onSnapshot, doc, setDoc } from "firebase/firestore";
 
 const { width } = Dimensions.get("window");
 
-const BooksReadSection = () => {
-  const [readingGoal, setReadingGoal] = useState(3);
+const BooksReadSection = ({ userId }) => {
+  const [readingGoal, setReadingGoal] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [actualBooksRead, setActualBooksRead] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,43 +29,75 @@ const BooksReadSection = () => {
   const cardHeight = cardWidth * 1.5;
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) {
+    if (!userId) {
       setActualBooksRead([]);
+      setReadingGoal(3);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
+    let userGoalLoaded = false;
+    let booksLoaded = false;
+
+    const trySetLoadingFalse = () => {
+        if (userGoalLoaded && booksLoaded) {
+            setIsLoading(false);
+        }
+    };
+
+    const userDocRef = doc(db, "users", userId);
+    const unsubscribeUserDoc = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists() && docSnap.data().readingGoal !== undefined) {
+        setReadingGoal(Number(docSnap.data().readingGoal));
+      } else {
+        setReadingGoal(3);
+        setDoc(userDocRef, { readingGoal: 3 }, { merge: true }).catch(e => console.error("Error saving default goal for user:", userId, e));
+      }
+      userGoalLoaded = true;
+      trySetLoadingFalse();
+    }, (error) => {
+      console.error("Error fetching user reading goal for user:", userId, error);
+      setReadingGoal(3);
+      userGoalLoaded = true;
+      trySetLoadingFalse();
+    });
+
     const currentYear = new Date().getFullYear();
     const startDate = new Date(currentYear, 0, 1).toISOString();
     const endDate = new Date(currentYear + 1, 0, 1).toISOString();
 
     const q = query(
-      collection(db, "users", user.uid, "booksRead"),
+      collection(db, "users", userId, "booksRead"),
       where("finishedTimestamp", ">=", startDate),
       where("finishedTimestamp", "<", endDate),
       orderBy("finishedTimestamp", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const unsubscribeBooksRead = onSnapshot(q, (querySnapshot) => {
       const booksData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
       }));
       setActualBooksRead(booksData);
-      setIsLoading(false);
+      booksLoaded = true;
+      trySetLoadingFalse();
     }, (error) => {
-      console.error("Error fetching read books: ", error);
-      setIsLoading(false);
-      Alert.alert("خطأ", "لم نتمكن من تحميل الكتب المقروءة.");
+      console.error("Error fetching read books for user:", userId, error);
+      Alert.alert("خطأ حاد!", "مشكلة في استقبال تحديثات الكتب المقروءة.");
+      booksLoaded = true;
+      trySetLoadingFalse();
     });
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      unsubscribeUserDoc();
+      unsubscribeBooksRead();
+    };
+  }, [userId]);
 
-  const itemsForFlatList = Array.from({ length: Number(readingGoal) || 0 }, (_, i) => {
-    if (i < actualBooksRead.length) {
+  const currentReadingGoal = Number(readingGoal) || 0;
+  const itemsForFlatList = Array.from({ length: currentReadingGoal }, (_, i) => {
+    if (userId && i < actualBooksRead.length) {
       return {
         ...actualBooksRead[i],
         isActualBook: true,
@@ -80,20 +112,29 @@ const BooksReadSection = () => {
     }
   });
 
-  const renderItem = ({ item }) => (
-    <View style={[styles.card, { width: cardWidth, height: cardHeight }]}>
-      {item.isActualBook && item.cover ? (
-        <Image source={{ uri: item.cover }} style={styles.bookImage} resizeMode="cover" />
-      ) : (
-        <Text style={styles.bookNumber}>{item.displaySlotNumber}</Text>
-      )}
-    </View>
-  );
+  const renderItem = ({ item }) => {
+    const imageUrl = item.cover || item.image;
+    return (
+      <View style={[styles.card, { width: cardWidth, height: cardHeight }]}>
+        {item.isActualBook && imageUrl ? (
+          <Image
+            key={item.id + "_" + imageUrl}
+            source={{ uri: imageUrl }}
+            style={styles.bookImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <Text style={styles.bookNumber}>{item.displaySlotNumber}</Text>
+        )}
+      </View>
+    );
+  };
 
-  const booksReadCount = actualBooksRead.length;
-  const booksNeededForGoal = Math.max(0, Number(readingGoal) - booksReadCount);
+  const booksReadCount = userId ? actualBooksRead.length : 0;
+  const booksNeededForGoal = Math.max(0, currentReadingGoal - booksReadCount);
+  const goalReached = userId && booksReadCount >= currentReadingGoal && currentReadingGoal > 0;
 
-  if (isLoading) {
+  if (isLoading && userId) {
     return (
       <View style={styles.containerLoading}>
         <Text style={styles.title}>Books Read This Year</Text>
@@ -107,73 +148,114 @@ const BooksReadSection = () => {
       <Text style={styles.title}>Books Read This Year</Text>
 
       <View style={{ width: "100%", height: cardHeight + 20, marginBottom: 10 }}>
-        {itemsForFlatList.length > 0 ? (
+        {(itemsForFlatList.length > 0 || currentReadingGoal > 0) ? (
             <FlatList
-                horizontal
-                data={itemsForFlatList}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id.toString()}
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{
+              horizontal
+              data={itemsForFlatList}
+              renderItem={renderItem}
+              keyExtractor={(item) => item.id.toString()}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
                 paddingHorizontal: 10,
                 justifyContent: itemsForFlatList.length * (cardWidth + 16) < width ? "center" : "flex-start",
                 flexGrow: 1,
-                }}
+              }}
             />
         ) : (
-            <Text style={styles.noBooksText}>Set your reading goal to see your progress!</Text>
+             !userId && <Text style={styles.noBooksText}>Create an account to set your goal!</Text>
         )}
       </View>
 
-      <View style={styles.goalRow}>
-        <Text style={styles.goalText}>
-          {booksNeededForGoal === 0 && booksReadCount >= Number(readingGoal) && Number(readingGoal) > 0
-            ? "You've reached your goal!"
-            : booksNeededForGoal > 0
-            ? `${booksNeededForGoal} more book${booksNeededForGoal === 1 ? "" : "s"} to reach your goal`
-            : booksReadCount > 0 && Number(readingGoal) === 0
-            ? "Set a goal to track your progress!"
-            : "Let's start reading!"
-          }
-        </Text>
-        <TouchableOpacity onPress={() => setModalVisible(true)}>
-          <Text style={styles.arrow}>➔</Text>
-        </TouchableOpacity>
-      </View>
-
-           <Text style={styles.subText}>
-        You've read {booksReadCount} book{booksReadCount === 1 ? "" : "s"} this year.{" "}
-        <TouchableOpacity onPress={() => router.push('/(tabs)/library')} style={styles.touchableLink}>
-          <Text style={styles.linkText}>
-            Keep reading!
+      {!userId ? (
+        <View>
+        <TouchableOpacity onPress={() => router.push('(tabs)/profile')} style={styles.createAccountButton}>
+          <Text style={styles.createAccountButtonText}>
+            Create an account to track your progress!
           </Text>
         </TouchableOpacity>
-      </Text>
+        <View style={styles.login}>
+              <Text style={styles.loginText} onPress={() => router.push('(tabs)/profile')}>
+                Already have an account? <Text style={styles.loginLink}>Log in</Text>
+              </Text>
+              </View>
+            </View>
+      ) : (
+        <>
+          <View style={styles.goalRow}>
+            <Text style={styles.goalText}>
+              {goalReached
+                ? "You've reached your goal!"
+                : booksNeededForGoal > 0
+                ? `${booksNeededForGoal} more book${booksNeededForGoal === 1 ? "" : "s"} to reach your goal`
+                : booksReadCount > 0 && currentReadingGoal === 0 
+                ? "Set a goal to track your progress!"
+                : "Let's start reading!"
+              }
+            </Text>
+            <TouchableOpacity onPress={() => setModalVisible(true)}>
+              <Text style={styles.arrow}>➔</Text>
+            </TouchableOpacity>
+          </View>
 
+          <Text style={styles.subText}>
+            You've read {booksReadCount} book{booksReadCount === 1 ? "" : "s"} this year.{" "}
+            {goalReached ? (
+              <Text style={styles.congratsText}>
+                Congratulations!
+              </Text>
+            ) : (
+              <TouchableOpacity onPress={() => router.push('/(tabs)/library')} style={styles.touchableLink}>
+                <Text style={styles.linkText}>
+                  Keep reading!
+                </Text>
+              </TouchableOpacity>
+            )}
+          </Text>
+        </>
+      )}
 
-      <Modal transparent animationType="slide" visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={() => setModalVisible(false)}>
-            <View style={styles.pickerContainer}>
-            <Picker
-                selectedValue={Number(readingGoal)}
+      {userId && modalVisible && (
+        <Modal transparent animationType="slide" visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={() => setModalVisible(false)}>
+              <View style={styles.pickerContainer} onStartShouldSetResponder={() => true}>
+              <Picker
+                selectedValue={currentReadingGoal}
                 onValueChange={(itemValue) => {
-                setReadingGoal(itemValue);
+                  setReadingGoal(Number(itemValue));
                 }}
                 style={{width: '100%'}}
-            >
+              >
                 {Array.from({ length: 31 }, (_, i) => i).map((num) => (
-                <Picker.Item key={num} label={`${num} book${num === 1 ? "" : "s"}`} value={num} />
+                  <Picker.Item key={num} label={`${num} book${num === 1 ? "" : "s"}`} value={num} />
                 ))}
-            </Picker>
-            <TouchableOpacity
-                onPress={() => setModalVisible(false)}
+              </Picker>
+              <TouchableOpacity
+                onPress={async () => {
+                  if (!userId) {
+                      Alert.alert("خطأ", "المستخدم غير مسجل للدخول.");
+                      setModalVisible(false);
+                      return;
+                  }
+                  if (readingGoal !== null) {
+                    try {
+                      const userDocRef = doc(db, "users", userId);
+                      await setDoc(userDocRef, { readingGoal: Number(readingGoal) }, { merge: true });
+                      Alert.alert("تم", "تم تحديث هدف القراءة بنجاح!");
+                    } catch (error) {
+                      console.error("Error updating reading goal: ", error);
+                      Alert.alert("خطأ", "لم نتمكن من تحديث هدف القراءة.");
+                    }
+                  }
+                  setModalVisible(false);
+                }}
                 style={styles.closeButton}
-            >
+              >
                 <Text style={styles.closeButtonText}>Set Goal</Text>
-            </TouchableOpacity>
-            </View>
-        </TouchableOpacity>
-      </Modal>
+              </TouchableOpacity>
+              </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -244,6 +326,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#777",
     marginTop: 4,
+    textAlign: 'center',
+  },
+  linkText:{
+    color:'#b0ad9a',
+    fontSize: 13,
+  },
+  congratsText: {
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    fontSize: 13,
+  },
+  touchableLink: {
   },
   noBooksText: {
     textAlign: 'center',
@@ -251,6 +345,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 20,
   },
+  createAccountButton: {
+    color:'#b0ad9a',
+    marginTop: 7,
+  },
+  createAccountButtonText: {
+    color: '#7d7362',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 19,
+  },
+  login:{textAlign:'center', alignItems:"center"},
+  loginText: { marginTop: 15, color: "#7d7362", fontSize: 16 },
+  loginLink: { fontWeight: "bold", color: "#585047" },
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end",
@@ -275,9 +382,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: 'bold',
     fontSize: 16,
-  },linkText:{
-    color:'#b0ad9a'
-  }
+  },
 });
 
 export default BooksReadSection;
