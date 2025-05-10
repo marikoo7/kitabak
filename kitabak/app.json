@@ -7,13 +7,17 @@
     "icon": "./assets/images/photo_2025-03-22_05-01-06-removebg-preview.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
+      "bundleIdentifier": "com.marikoo7.kitabak",
       "supportsTablet": true
     },
     "android": {
+      "package": "com.marikoo7.kitabak",
+      "versionCode": 1,
+      "permissions": [],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/photo_2025-03-22_05-01-06-removebg-preview.png",
+        "foregroundImage": "./assets/images/photo_2025-03-22_05-01-06.jpg",
         "backgroundColor": "#ffffff"
       }
     },
@@ -36,6 +40,15 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "1416cce1-89c0-42e3-a420-d70dee8493b6"
+      }
     }
   }
 }
+
