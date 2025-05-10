@@ -1,5 +1,16 @@
 import { useState, useEffect } from "react";
-import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, Modal } from "react-native";
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  Image, 
+  StyleSheet, 
+  TouchableOpacity, 
+  Modal,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform
+} from "react-native";
 import { shuffle } from "lodash";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../kitabak-server/firebaseConfig";
@@ -68,10 +79,28 @@ const ExploreSection = () => {
         transparent={true}
         visible={modalVisible}
         onRequestClose={closeModal}
+        statusBarTranslucent
       >
-        <View style={styles.modalOverlay}>
-          <BookComponent book={selectedBook} visible={modalVisible} onClose={closeModal} />
-        </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardView}
+        >
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={closeModal}
+          >
+            <Pressable 
+              style={styles.modalContent}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <BookComponent 
+                book={selectedBook} 
+                visible={modalVisible} 
+                onClose={closeModal} 
+              />
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -117,12 +146,21 @@ const styles = StyleSheet.create({
     fontSize: 12, 
     color: "#b0ad9a" 
   },
-  modalOverlay: {
+  keyboardView: {
+    flex: 1,
+  },
+  modalBackdrop: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
+  modalContent: {
+    width: '90%',
+    backgroundColor: 'transparent',
+    borderRadius: 10,
+    elevation: 20,
+  }
 });
 
 export default ExploreSection;

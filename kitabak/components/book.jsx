@@ -1,6 +1,6 @@
-import { View, StyleSheet, TouchableOpacity, Modal, TouchableWithoutFeedback, Text, Image, ScrollView, Alert, TextInput, Keyboard, useWindowDimensions, KeyboardAvoidingView, Platform } from "react-native";
-import { useEffect, useState } from "react";
-import { doc, setDoc, deleteDoc, getDoc, getDocs, collection, addDoc, query, orderBy, onSnapshot } from "firebase/firestore";
+import { View, StyleSheet, TouchableOpacity, Modal, Text, Image, ScrollView, Alert, TextInput, Keyboard, useWindowDimensions, KeyboardAvoidingView, Platform } from "react-native";
+import { useEffect, useState, useRef } from "react";
+import { doc, setDoc, deleteDoc, getDoc, getDocs, collection, addDoc, query, orderBy, onSnapshot, updateDoc, increment } from "firebase/firestore";
 import { db, auth } from "../kitabak-server/firebaseConfig";
 import { useRouter } from "expo-router";
 import { AirbnbRating, Button } from "@rneui/themed";
@@ -10,6 +10,7 @@ export default function BookComponent({ book, visible, onClose }) {
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 500;
   const router = useRouter();
+  const reviewInputRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState("description");
   const [showExtraOption, setShowExtraOption] = useState(false);
@@ -19,6 +20,16 @@ export default function BookComponent({ book, visible, onClose }) {
   const [userRating, setUserRating] = useState(0);
   const [averageRating, setAverageRating] = useState(0);
   const [userName, setUserName] = useState(""); 
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
+    const keyboardDidHideListener = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -28,31 +39,19 @@ export default function BookComponent({ book, visible, onClose }) {
           setUserName(user.displayName);
         } else {
           try {
-            const userDocRef = doc(db, "users", user.uid);
-            const userDoc = await getDoc(userDocRef);
-            
+            const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists()) {
-              const userData = userDoc.data();
-              
-              if (userData.username) {
-                setUserName(userData.username);
-              } else {
-                const emailName = user.email ? user.email.split('@')[0] : "User";
-                setUserName(emailName);
-              }
+              const data = userDoc.data();
+              setUserName(data.username || user.email?.split('@')[0] || "User");
             } else {
-              const emailName = user.email ? user.email.split('@')[0] : "User";
-              setUserName(emailName);
+              setUserName(user.email?.split('@')[0] || "User");
             }
-          } catch (error) {
-            console.error("Error fetching user profile:", error);
-            const emailName = user.email ? user.email.split('@')[0] : "User";
-            setUserName(emailName);
+          } catch {
+            setUserName(user.email?.split('@')[0] || "User");
           }
         }
       }
     };
-    
     fetchUserProfile();
   }, []);
 
@@ -108,9 +107,8 @@ export default function BookComponent({ book, visible, onClose }) {
       try {
         await setDoc(ref, finishedData);
         if (onClose) onClose();
-      } catch (error) {
-        console.error("Error adding to Finished:", error);
-        Alert.alert("error", "Error adding to Finised");
+      } catch {
+        Alert.alert("error", "Error adding to Finished");
       }
     } else {
       Alert.alert("alert", "you should log in first");
@@ -168,159 +166,175 @@ export default function BookComponent({ book, visible, onClose }) {
   const submitReview = async () => {
     const user = auth.currentUser;
     if (!user || !reviewText.trim()) return;
-    
-    if (!userName) {
-      // If userName is still empty, try to fetch it one more time before submitting
-      try {
-        const userDocRef = doc(db, "users", user.uid);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (userDoc.exists() && userDoc.data().username) {
-          setUserName(userDoc.data().username);
-        }
-      } catch (error) {
-        console.error("Error fetching username before review:", error);
-      }
-    }
-    
     await addDoc(collection(db, "books", book.id, "reviews"), {
       userId: user.uid,
       userName: userName || user.email?.split('@')[0] || "User",
       reviewText: reviewText.trim(),
       timestamp: new Date(),
     });
+    const bookRef = doc(db, "books", book.id);
+    await updateDoc(bookRef, { reviews: increment(1) });
     setReviewText("");
     Keyboard.dismiss();
   };
 
+  useEffect(() => {
+    if (activeTab === "reviews" && reviewInputRef.current) {
+      setTimeout(() => {
+        if (reviewInputRef.current) {
+          reviewInputRef.current.focus();
+        }
+      }, 300);
+    }
+  }, [activeTab]);
+
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.modalBackground}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.closeButtonContainer}>
-                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                  <Icon name="times" size={18} color="#7d7362" />
-                </TouchableOpacity>
-              </View>
-              
-              <ScrollView 
-                style={styles.mainScrollView}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollViewContent}
-              >
-                <View style={{ 
-                  flexDirection: isSmallScreen ? "column" : "row", 
-                  alignItems: isSmallScreen ? "center" : "flex-start", 
-                  marginBottom: 10 
-                }}>
-                  <View style={{ alignItems: "center" }}>
-                    <Image source={{ uri: book?.cover }} style={styles.bookImageInDialog} />
-                    <View style={{ flexDirection: "row", marginTop: 10, alignItems: "center" }}>
-                      <TouchableOpacity onPress={() => setShowExtraOption(!showExtraOption)} style={styles.arrowBtn}>
-                        <Icon name={showExtraOption ? "chevron-up" : "chevron-down"} size={14} color="#7d7362" />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={handleAddToLibrary} style={styles.addToLibraryBtn}>
-                        <Text style={styles.addToLibraryText}>Add to library</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={handleToggleFavorite} style={styles.favoriteBtn}>
-                        <Icon name={isFavorite ? "heart" : "heart-o"} size={20} color={isFavorite ? "red" : "#ccc"} />
-                      </TouchableOpacity>
-                    </View>
-
-                    {showExtraOption && (
-                      <TouchableOpacity onPress={handleAddToFinished} style={[styles.addToLibraryBtn, { marginTop: 10 }]}>
-                        <Text style={styles.addToLibraryText}>Add to Finished</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  <View style={{ flex: 1, marginLeft: isSmallScreen ? 0 : 15, marginTop: isSmallScreen ? 10 : 0 }}>
-                    <AirbnbRating isDisabled showRating={false} defaultRating={averageRating} size={20} />
-                    <Text style={styles.bookTitleInDialog}>{book?.title}</Text>
-                    <Text style={styles.bookAuthorInDialog}>by {book?.author}</Text>
-                    <Text style={{ color: "#7d7362" }}>Genres:</Text>
-                    <Text style={styles.bookCategory}>{book?.genres}</Text>
-                  </View>
-                </View>
-
-                <View style={{ alignItems: "center", marginBottom: 10 }}>
-                  <Text style={{ color: "#7d7362" }}>Rate This Book</Text>
-                  <AirbnbRating defaultRating={userRating} showRating={false} size={25} onFinishRating={submitRating} />
-                </View>
-
-                <View style={{ flexDirection: "row", justifyContent: "center", marginVertical: 15 }}>
-                  {["description", "reviews"].map((tab) => (
-                    <TouchableOpacity 
-                      key={tab} 
-                      onPress={() => setActiveTab(tab)} 
-                      style={[
-                        styles.tabButton,
-                        activeTab === tab ? styles.tabButtonActive : null
-                      ]}
-                    >
-                      <Text style={[
-                        styles.tabButtonText,
-                        activeTab === tab ? styles.tabButtonTextActive : null
-                      ]}>
-                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                      </Text>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.modalBackground}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.closeButtonContainer}>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <Icon name="times" size={18} color="#7d7362" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView 
+              style={styles.mainScrollView}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollViewContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={{ 
+                flexDirection: isSmallScreen ? "column" : "row", 
+                alignItems: isSmallScreen ? "center" : "flex-start", 
+                marginBottom: 10 
+              }}>
+                <View style={{ alignItems: "center" }}>
+                  <Image source={{ uri: book?.cover }} style={styles.bookImageInDialog} />
+                  <View style={{ flexDirection: "row", marginTop: 10, alignItems: "center" }}>
+                    <TouchableOpacity onPress={() => setShowExtraOption(!showExtraOption)} style={styles.arrowBtn}>
+                      <Icon name={showExtraOption ? "chevron-up" : "chevron-down"} size={14} color="#7d7362" />
                     </TouchableOpacity>
-                  ))}
-                </View>
+                    <TouchableOpacity onPress={handleAddToLibrary} style={styles.addToLibraryBtn}>
+                      <Text style={styles.addToLibraryText}>Add to library</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleToggleFavorite} style={styles.favoriteBtn}>
+                      <Icon name={isFavorite ? "heart" : "heart-o"} size={20} color={isFavorite ? "red" : "#ccc"} />
+                    </TouchableOpacity>
+                  </View>
 
-                <View style={{ marginTop: 10, flex: 1 }}>
-                  {activeTab === "reviews" ? (
-                    <View style={styles.reviewsContainer}>
-                      {reviewsList.length === 0 ? (
-                        <Text style={styles.bookdescription}>No reviews yet.</Text>
-                      ) : (
-                        reviewsList.map((r) => (
-                          <View key={r.id} style={styles.reviewItem}>
-                            <Text style={styles.reviewUserName}>{r.userName}</Text>
-                            <Text style={styles.reviewText}>{r.reviewText}</Text>
-                            <Text style={styles.reviewTime}>
-                              {r.timestamp && r.timestamp.seconds 
-                                ? new Date(r.timestamp.seconds * 1000).toLocaleString() 
-                                : 'Just now'}
-                            </Text>
-                          </View>
-                        ))
-                      )}
-                    </View>
-                  ) : (
-                    <View style={styles.descriptionContainer}>
-                      <Text style={styles.bookdescription}>{book?.description}</Text>
-                    </View>
+                  {showExtraOption && (
+                    <TouchableOpacity onPress={handleAddToFinished} style={[styles.addToLibraryBtn, { marginTop: 10 }]}>
+                      <Text style={styles.addToLibraryText}>Add to Finished</Text>
+                    </TouchableOpacity>
                   )}
                 </View>
-              </ScrollView>
-              
-              {activeTab === "reviews" && (
-                <View style={styles.reviewInputContainer}>
-                  <Text style={{ color: "#7d7362", marginBottom: 5 }}>Add your review:</Text>
-                  <TextInput
-                    placeholder="Write a review..."
-                    value={reviewText}
-                    onChangeText={setReviewText}
-                    style={styles.reviewInput}
-                    multiline
-                  />
+
+                <View style={{ flex: 1, marginLeft: isSmallScreen ? 0 : 15, marginTop: isSmallScreen ? 10 : 0 }}>
+                  <AirbnbRating isDisabled showRating={false} defaultRating={averageRating} size={20} />
+                  <Text style={styles.bookTitleInDialog}>{book?.title}</Text>
+                  <Text style={styles.bookAuthorInDialog}>by {book?.author}</Text>
+                  <Text style={{ color: "#7d7362" }}>Genres:</Text>
+                  <Text style={styles.bookCategory}>
+                    {Array.isArray(book?.genres) ? book.genres.join(', ') : book?.genres}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ alignItems: "center", marginBottom: 10 }}>
+                <Text style={{ color: "#7d7362" }}>Rate This Book</Text>
+                <AirbnbRating defaultRating={userRating} showRating={false} size={25} onFinishRating={submitRating} />
+              </View>
+
+              <View style={{ flexDirection: "row", justifyContent: "center", marginVertical: 15 }}>
+                {["description", "reviews"].map((tab) => (
+                  <TouchableOpacity 
+                    key={tab} 
+                    onPress={() => setActiveTab(tab)} 
+                    style={[
+                      styles.tabButton,
+                      activeTab === tab ? styles.tabButtonActive : null
+                    ]}
+                  >
+                    <Text style={[
+                      styles.tabButtonText,
+                      activeTab === tab ? styles.tabButtonTextActive : null
+                    ]}>
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={{ marginTop: 10, flex: 1 }}>
+                {activeTab === "reviews" ? (
+                  <View style={styles.reviewsContainer}>
+                    {reviewsList.length === 0 ? (
+                      <Text style={styles.bookdescription}>No reviews yet.</Text>
+                    ) : (
+                      reviewsList.map((r) => (
+                        <View key={r.id} style={styles.reviewItem}>
+                          <Text style={styles.reviewUserName}>{r.userName}</Text>
+                          <Text style={styles.reviewText}>{r.reviewText}</Text>
+                          <Text style={styles.reviewTime}>
+                            {r.timestamp && r.timestamp.seconds 
+                              ? new Date(r.timestamp.seconds * 1000).toLocaleString() 
+                              : 'Just now'}
+                          </Text>
+                        </View>
+                      ))
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.descriptionContainer}>
+                    <Text style={styles.bookdescription}>{book?.description}</Text>
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+            
+            {activeTab === "reviews" && (
+              <View style={[
+                styles.reviewInputContainer,
+                keyboardVisible && Platform.OS === "ios" ? { paddingBottom: 20 } : {}
+              ]}>
+                <Text style={{ color: "#7d7362", marginBottom: 5 }}>Add your review:</Text>
+                <TextInput
+                  ref={reviewInputRef}
+                  placeholder="Write a review..."
+                  value={reviewText}
+                  onChangeText={setReviewText}
+                  style={styles.reviewInput}
+                  multiline
+                  autoCapitalize="sentences"
+                  keyboardType="default"
+                  keyboardAppearance="default"
+                  maxLength={500}
+                  // Add direct focus handling attributes
+                  accessible={true}
+                  onResponderGrant={() => {
+                    if (reviewInputRef.current) {
+                      reviewInputRef.current.focus();
+                    }
+                  }}
+                />
+                {reviewText.length > 0 && (
                   <Button 
                     title="Submit" 
                     onPress={submitReview} 
                     buttonStyle={styles.submitButton}
                   />
-                </View>
-              )}
-            </View>
+                )}
+              </View>
+            )}
           </View>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -463,6 +477,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     marginTop: 5,
     backgroundColor: "#fff",
+    zIndex: 99,
   },
   reviewInput: {
     backgroundColor: "#f0f0f0",
@@ -474,6 +489,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     borderColor: "#e7e6df",
     borderWidth: 1,
+    textAlignVertical: 'top',
   },
   submitButton: {
     backgroundColor: "#7d7362",
