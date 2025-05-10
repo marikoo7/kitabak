@@ -21,7 +21,7 @@ export default function AboutScreen() {
         const unsubscribeDoc = onSnapshot(userDocRef, (userDoc) => {
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            setProfilePicUri(userData.profilePic); // Set the profilePic URI from Firestore
+            setProfilePicUri(userData.profilePic);
           }
         });
 

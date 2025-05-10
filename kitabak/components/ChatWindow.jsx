@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, TextInput, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState } from 'react';
+import { TextInput, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import ChatMessage from '../components/ChatMessage';
 import { sendMessageToGPT } from '../components/sendMessageToGPT';
 import { useEffect } from 'react';
@@ -21,7 +21,7 @@ export default function ChatWindow() {
     setMessages(prev => [...prev, aiMessage]);
   };
   useEffect(() => {
-    const welcome = { sender: 'ai', text: 'مرحبًا! كيف يمكنني مساعدتك اليوم؟ 🤖' };
+    const welcome = { sender: 'ai', text: 'Hi! How can i help you today 🤖' };
     setMessages([welcome]);
   }, []);
 
@@ -35,7 +35,7 @@ export default function ChatWindow() {
       />
       <TextInput
         style={styles.input}
-        placeholder="اكتب رسالتك هنا..."
+        placeholder= "write your prompt here..."
         value={input}
         onChangeText={setInput}
         onSubmitEditing={sendMessage}

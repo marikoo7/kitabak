@@ -76,13 +76,44 @@ export default function SignUp({ onSwitchToLogin }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f6f6f4" },
-  logo: { width: 140, height: 155, marginBottom: 20 },
-  error: { color: "red", marginBottom: 10 },
-  input: { width: "85%", padding: 15, borderRadius: 20, backgroundColor: "#e7e6df", marginBottom: 10 },
-  signupButton: { width: "85%", padding: 17, borderRadius: 20, backgroundColor: "#b0ad9a", alignItems: "center" },
-  signupText: { color: "#f6f6f4", fontSize: 20 },
-  orText: { marginVertical: 15, color: "#7d7362", fontSize: 20 },
+  container: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    backgroundColor: "#f6f6f4" 
+  },
+  logo: { 
+    width: 140, 
+    height: 155, 
+    marginBottom: 20 
+  },
+  error: { 
+    color: "red", 
+    marginBottom: 10 
+  },
+  input: { 
+    width: "85%", 
+    padding: 15, 
+    borderRadius: 20, 
+    backgroundColor: "#e7e6df", 
+    marginBottom: 10 
+  },
+  signupButton: { 
+    width: "85%", 
+    padding: 17, 
+    borderRadius: 20, 
+    backgroundColor: "#b0ad9a", 
+    alignItems: "center" 
+  },
+  signupText: { 
+    color: "#f6f6f4", 
+    fontSize: 20 
+  },
+  orText: { 
+    marginVertical: 15, 
+    color: "#7d7362", 
+    fontSize: 20 
+  },
   googleButton: {
     width: 55,
     height: 55,
@@ -97,6 +128,13 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30
   },
-  loginText: { marginTop: 15, color: "#7d7362", fontSize: 16 },
-  loginLink: { fontWeight: "bold", color: "#585047" }
+  loginText: { 
+    marginTop: 15, 
+    color: "#7d7362", 
+    fontSize: 16 
+  },
+  loginLink: { 
+    fontWeight: "bold", 
+    color: "#585047" 
+  }
 });

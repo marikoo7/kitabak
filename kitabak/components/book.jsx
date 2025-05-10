@@ -1,32 +1,6 @@
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  TouchableWithoutFeedback,
-  Text,
-  Image,
-  ScrollView,
-  Alert,
-  TextInput,
-  Keyboard,
-  useWindowDimensions,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
-import React, { useEffect, useState, useCallback } from "react";
-import {
-  doc,
-  setDoc,
-  deleteDoc,
-  getDoc,
-  getDocs,
-  collection,
-  addDoc,
-  query,
-  orderBy,
-  onSnapshot,
-} from "firebase/firestore";
+import { View, StyleSheet, TouchableOpacity, Modal, TouchableWithoutFeedback, Text, Image, ScrollView, Alert, TextInput, Keyboard, useWindowDimensions, KeyboardAvoidingView, Platform } from "react-native";
+import { useEffect, useState } from "react";
+import { doc, setDoc, deleteDoc, getDoc, getDocs, collection, addDoc, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db, auth } from "../kitabak-server/firebaseConfig";
 import { useRouter } from "expo-router";
 import { AirbnbRating, Button } from "@rneui/themed";
@@ -44,41 +18,34 @@ export default function BookComponent({ book, visible, onClose }) {
   const [reviewsList, setReviewsList] = useState([]);
   const [userRating, setUserRating] = useState(0);
   const [averageRating, setAverageRating] = useState(0);
-  const [userName, setUserName] = useState(""); // Add state for userName
+  const [userName, setUserName] = useState(""); 
 
-  // Fetch user profile data when component mounts
   useEffect(() => {
     const fetchUserProfile = async () => {
       const user = auth.currentUser;
       if (user) {
-        // First try to get the display name from auth
         if (user.displayName) {
           setUserName(user.displayName);
         } else {
-          // If no display name, try to fetch from users collection
           try {
             const userDocRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userDocRef);
             
             if (userDoc.exists()) {
-              // Use the specific "username" field from your schema
               const userData = userDoc.data();
               
               if (userData.username) {
                 setUserName(userData.username);
               } else {
-                // If username not found, use email as fallback
                 const emailName = user.email ? user.email.split('@')[0] : "User";
                 setUserName(emailName);
               }
             } else {
-              // User document doesn't exist, use email as fallback
               const emailName = user.email ? user.email.split('@')[0] : "User";
               setUserName(emailName);
             }
           } catch (error) {
             console.error("Error fetching user profile:", error);
-            // Use email as fallback
             const emailName = user.email ? user.email.split('@')[0] : "User";
             setUserName(emailName);
           }
@@ -143,10 +110,10 @@ export default function BookComponent({ book, visible, onClose }) {
         if (onClose) onClose();
       } catch (error) {
         console.error("Error adding to Finished:", error);
-        Alert.alert("خطأ", "حدث خطأ أثناء الإضافة إلى المقروءة.");
+        Alert.alert("error", "Error adding to Finised");
       }
     } else {
-      Alert.alert("تنبيه", "يجب تسجيل الدخول أولاً.");
+      Alert.alert("alert", "you should log in first");
     }
   };
 
@@ -216,7 +183,6 @@ export default function BookComponent({ book, visible, onClose }) {
       }
     }
     
-    // Use our stored userName with multiple fallbacks
     await addDoc(collection(db, "books", book.id, "reviews"), {
       userId: user.uid,
       userName: userName || user.email?.split('@')[0] || "User",
@@ -242,13 +208,11 @@ export default function BookComponent({ book, visible, onClose }) {
                 </TouchableOpacity>
               </View>
               
-              {/* Main Content ScrollView */}
               <ScrollView 
                 style={styles.mainScrollView}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollViewContent}
               >
-                {/* Book Info Row */}
                 <View style={{ 
                   flexDirection: isSmallScreen ? "column" : "row", 
                   alignItems: isSmallScreen ? "center" : "flex-start", 
@@ -284,13 +248,11 @@ export default function BookComponent({ book, visible, onClose }) {
                   </View>
                 </View>
 
-                {/* Rating Section */}
                 <View style={{ alignItems: "center", marginBottom: 10 }}>
                   <Text style={{ color: "#7d7362" }}>Rate This Book</Text>
                   <AirbnbRating defaultRating={userRating} showRating={false} size={25} onFinishRating={submitRating} />
                 </View>
 
-                {/* Tab Switch */}
                 <View style={{ flexDirection: "row", justifyContent: "center", marginVertical: 15 }}>
                   {["description", "reviews"].map((tab) => (
                     <TouchableOpacity 
@@ -311,7 +273,6 @@ export default function BookComponent({ book, visible, onClose }) {
                   ))}
                 </View>
 
-                {/* Description or Reviews */}
                 <View style={{ marginTop: 10, flex: 1 }}>
                   {activeTab === "reviews" ? (
                     <View style={styles.reviewsContainer}>
@@ -339,7 +300,6 @@ export default function BookComponent({ book, visible, onClose }) {
                 </View>
               </ScrollView>
               
-              {/* Review Input Section (Fixed at bottom) */}
               {activeTab === "reviews" && (
                 <View style={styles.reviewInputContainer}>
                   <Text style={{ color: "#7d7362", marginBottom: 5 }}>Add your review:</Text>

@@ -110,7 +110,7 @@ export default function UserInfoDisplay({ user, selectedProfilePic, setProfilePi
         alert("You did not select any image or no assets found.");
       }
     } catch (err) {
-      console.error("DEBUG: Image pick/upload failed in catch block:", err); // شوفي الخطأ هنا
+      console.error("DEBUG: Image pick/upload failed in catch block:", err);
       console.error("DEBUG: Error object stringified:", JSON.stringify(err, null, 2));
       alert("Failed to process the image. Please check console for details.");
     }
@@ -285,5 +285,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: isWeb ? 16:14,},
+    fontSize: isWeb ? 16:14,
+  },
 });

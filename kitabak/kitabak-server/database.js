@@ -1,5 +1,3 @@
-// firebaseBooks.js
-
 import { getFirestore, collection, getDocs } from "firebase/firestore";
 import app from "./firebaseConfig";
 
@@ -20,10 +18,10 @@ export const fetchBooks = async () => {
             ...doc.data() 
         }));
 
-        console.log(`✅ Fetched ${books.length} books`);
+        console.log(`Fetched ${books.length} books`);
         return books;
     } catch (error) {
-        console.error("❌ Error fetching books:", error);
+        console.error("Error fetching books:", error);
         return [];
     }
 };

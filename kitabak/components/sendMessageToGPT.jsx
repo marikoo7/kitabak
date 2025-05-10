@@ -53,6 +53,6 @@ export const sendMessageToGPT = async (message) => {
 
   } catch (error) {
     console.error("OpenRouter API Error:", error.response?.data || error.message);
-    return "عذرًا، حدث خطأ أثناء التواصل مع المساعد.";
+    return "Oops! Something went wrong. Please check your internet connection and try again.";
   }
 };
