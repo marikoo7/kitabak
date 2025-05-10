@@ -1,16 +1,5 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  Dimensions,
-  FlatList,
-  TouchableOpacity,
-  Modal,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, StyleSheet, Image, Dimensions, FlatList, TouchableOpacity, Modal, ActivityIndicator, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { Picker } from "@react-native-picker/picker";
 import { db, auth } from "../kitabak-server/firebaseConfig";
@@ -84,7 +73,6 @@ const BooksReadSection = ({ userId }) => {
       trySetLoadingFalse();
     }, (error) => {
       console.error("Error fetching read books for user:", userId, error);
-      Alert.alert("خطأ حاد!", "مشكلة في استقبال تحديثات الكتب المقروءة.");
       booksLoaded = true;
       trySetLoadingFalse();
     });
@@ -168,17 +156,17 @@ const BooksReadSection = ({ userId }) => {
 
       {!userId ? (
         <View>
-        <TouchableOpacity onPress={() => router.push('(tabs)/profile')} style={styles.createAccountButton}>
-          <Text style={styles.createAccountButtonText}>
-            Create an account to track your progress!
-          </Text>
-        </TouchableOpacity>
-        <View style={styles.login}>
-              <Text style={styles.loginText} onPress={() => router.push('(tabs)/profile')}>
-                Already have an account? <Text style={styles.loginLink}>Log in</Text>
-              </Text>
-              </View>
-            </View>
+          <TouchableOpacity onPress={() => router.push('(tabs)/profile')} style={styles.createAccountButton}>
+            <Text style={styles.createAccountButtonText}>
+              Create an account to track your progress!
+            </Text>
+          </TouchableOpacity>
+          <View style={styles.login}>
+            <Text style={styles.loginText} onPress={() => router.push('(tabs)/profile')}>
+              Already have an account? <Text style={styles.loginLink}>Log in</Text>
+            </Text>
+          </View>
+        </View>
       ) : (
         <>
           <View style={styles.goalRow}>
@@ -215,7 +203,7 @@ const BooksReadSection = ({ userId }) => {
       )}
 
       {userId && modalVisible && (
-        <Modal transparent animationType="slide" visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+        <Modal transparent animationType="fade" visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
           <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={() => setModalVisible(false)}>
               <View style={styles.pickerContainer} onStartShouldSetResponder={() => true}>
               <Picker
@@ -223,7 +211,7 @@ const BooksReadSection = ({ userId }) => {
                 onValueChange={(itemValue) => {
                   setReadingGoal(Number(itemValue));
                 }}
-                style={{width: '100%'}}
+                style={{width: '20%'}}
               >
                 {Array.from({ length: 31 }, (_, i) => i).map((num) => (
                   <Picker.Item key={num} label={`${num} book${num === 1 ? "" : "s"}`} value={num} />
@@ -232,7 +220,7 @@ const BooksReadSection = ({ userId }) => {
               <TouchableOpacity
                 onPress={async () => {
                   if (!userId) {
-                      Alert.alert("خطأ", "المستخدم غير مسجل للدخول.");
+                      Alert.alert("error","the user is not logged in");
                       setModalVisible(false);
                       return;
                   }
@@ -240,10 +228,10 @@ const BooksReadSection = ({ userId }) => {
                     try {
                       const userDocRef = doc(db, "users", userId);
                       await setDoc(userDocRef, { readingGoal: Number(readingGoal) }, { merge: true });
-                      Alert.alert("تم", "تم تحديث هدف القراءة بنجاح!");
+                      Alert.alert("done", "goal reset done!");
                     } catch (error) {
                       console.error("Error updating reading goal: ", error);
-                      Alert.alert("خطأ", "لم نتمكن من تحديث هدف القراءة.");
+                      Alert.alert("error", "error resetting the goal");
                     }
                   }
                   setModalVisible(false);
@@ -334,10 +322,8 @@ const styles = StyleSheet.create({
   },
   congratsText: {
     fontWeight: 'bold',
-    color: '#4CAF50',
+    color: '#2d502f',
     fontSize: 13,
-  },
-  touchableLink: {
   },
   noBooksText: {
     textAlign: 'center',
@@ -356,12 +342,12 @@ const styles = StyleSheet.create({
     fontSize: 19,
   },
   login:{textAlign:'center', alignItems:"center"},
-  loginText: { marginTop: 15, color: "#7d7362", fontSize: 16 },
+  loginText: { color: "#7d7362", fontSize: 16 },
   loginLink: { fontWeight: "bold", color: "#585047" },
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   pickerContainer: {
     backgroundColor: "#fff",

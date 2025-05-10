@@ -9,6 +9,7 @@ import { db, auth } from "../../kitabak-server/firebaseConfig";
 import { Text, FlatList, Image, ScrollView, SafeAreaView } from "react-native";
 import { useRouter } from "expo-router";
 import BookComponent from "../../components/book"
+
 export default function StoreScreen() {
   const [allBooks, setAllBooks] = useState([]);
   const [book, setbook] = useState(null);
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
   },
   searchResult: {
     position: 'absolute', 
-    top: 100, 
+    top: 112, 
     left: 20,
     right: 10,
     zIndex: 10,

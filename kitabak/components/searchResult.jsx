@@ -1,15 +1,7 @@
 
 import React, { useState } from "react";
 import BookComponent from './book'; 
-import {
-  View,
-  FlatList,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
-  Image,
-} from "react-native";
+import { View, FlatList, Text, TouchableOpacity, StyleSheet, Modal, Image } from "react-native";
 
 export default function BookList({ books, searchPerformed }) {
   const [selectedBook, setSelectedBook] = useState(null);
@@ -38,7 +30,7 @@ export default function BookList({ books, searchPerformed }) {
       />
 
       {selectedBook && (
-        <Modal transparent={true} animationType="slide" visible={true}>
+        <Modal transparent={true} animationType="fade" visible={true}>
           <View style={styles.modalBackground}>
             <View style={styles.modalContainer}>
               <TouchableOpacity
@@ -54,7 +46,7 @@ export default function BookList({ books, searchPerformed }) {
               />
 
               <Text style={styles.modalTitle}>{selectedBook.title}</Text>
-              <Text style={styles.modalAuthor}>BY {selectedBook.author}</Text>
+              <Text style={styles.modalAuthor}>by {selectedBook.author}</Text>
 
               <TouchableOpacity
                 style={styles.addButton}
@@ -64,7 +56,7 @@ export default function BookList({ books, searchPerformed }) {
                   setSelectedBook(null);
                 }}
               >
-                <Text style={styles.addButtonText}>SHOW MORE DETAILS</Text>
+                <Text style={styles.addButtonText}>Show More Details</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -126,20 +118,19 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: "50%",
-    backgroundColor: "#fff",
+    backgroundColor: "#f6f6f4",
     borderRadius: 20,
     padding: 20,
     alignItems: "center",
   },
   closeButton: {
     position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: "transparent",
+    top: 5,
+    right: 15,
   },
   closeButtonText: {
-    fontSize: 30,
-    color: "#333",
+    fontSize: 35,
+    color: "#585047",
   },
   bookImage: {
     width: 120,
@@ -148,23 +139,25 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontFamily: "MalibuSunday",
+    fontSize: 20,
+    color: "#585047",
     marginBottom: 5,
+    textAlign: "center"
   },
   modalAuthor: {
-    fontSize: 16,
-    color: "#777",
+    fontSize: 12,
+    color: "#7d7362",
     marginBottom: 10,
   },
   addButton: {
-    backgroundColor: "#333",
+    backgroundColor: "#585047",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 10,
   },
   addButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
+    color: "#f6f6f4",
+    fontWeight: "100%",
   },
 });
