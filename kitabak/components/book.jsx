@@ -1,88 +1,97 @@
-import { View, StyleSheet, TouchableOpacity, Modal, Text, Image, ScrollView, Alert, TextInput, Keyboard, useWindowDimensions, KeyboardAvoidingView, Platform } from "react-native";
-import { useEffect, useState, useRef } from "react";
-import { doc, setDoc, deleteDoc, getDoc, getDocs, collection, addDoc, query, orderBy, onSnapshot, updateDoc, increment } from "firebase/firestore";
+import { View, StyleSheet, TouchableOpacity, Modal ,TouchableWithoutFeedback } from "react-native";
+import React, { useEffect, useState,useCallback } from "react";
+import { doc, setDoc ,deleteDoc,getDoc,getDocs} from "firebase/firestore";
 import { db, auth } from "../kitabak-server/firebaseConfig";
+import { Text,  Image, ScrollView, } from "react-native";
 import { useRouter } from "expo-router";
-import { AirbnbRating, Button } from "@rneui/themed";
-import Icon from "react-native-vector-icons/FontAwesome";
+import { Button, AirbnbRating, CheckBox } from "@rneui/themed"; // npm install @rneui/themed @rneui/base
+import { useWindowDimensions } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome"; 
+import { collection, addDoc, query, orderBy, onSnapshot } from "firebase/firestore";
+import { TextInput } from "react-native";
 
 export default function BookComponent({ book, visible, onClose }) {
-  const { width } = useWindowDimensions();
-  const isSmallScreen = width < 500;
-  const router = useRouter();
-  const reviewInputRef = useRef(null);
 
-  const [activeTab, setActiveTab] = useState("description");
-  const [showExtraOption, setShowExtraOption] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 500; 
   const [reviewText, setReviewText] = useState("");
   const [reviewsList, setReviewsList] = useState([]);
   const [userRating, setUserRating] = useState(0);
   const [averageRating, setAverageRating] = useState(0);
-  const [userName, setUserName] = useState(""); 
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
-    const keyboardDidHideListener = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-    };
-  }, []);
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        if (user.displayName) {
-          setUserName(user.displayName);
-        } else {
-          try {
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists()) {
-              const data = userDoc.data();
-              setUserName(data.username || user.email?.split('@')[0] || "User");
-            } else {
-              setUserName(user.email?.split('@')[0] || "User");
-            }
-          } catch {
-            setUserName(user.email?.split('@')[0] || "User");
-          }
+    const fetchAverageRating = async () => {
+      if (!book?.id) return;
+  
+      const ratingsRef = collection(db, "books", book.id, "ratings");
+      const snapshot = await getDocs(ratingsRef);
+  
+      let total = 0;
+      let count = 0;
+  
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.rating) {
+          total += data.rating;
+          count += 1;
         }
-      }
+      });
+  
+      const avg = count > 0 ? total / count : 0;
+      setAverageRating(avg);
     };
-    fetchUserProfile();
-  }, []);
+  
+    fetchAverageRating();
+  }, [book?.id]);
 
   useEffect(() => {
-    const checkFavorite = async () => {
-      const user = auth.currentUser;
-      if (user && book?.id && visible) {
-        const favRef = doc(db, "users", user.uid, "favorites", book.id);
-        const docSnap = await getDoc(favRef);
-        setIsFavorite(docSnap.exists());
-      }
-    };
-    checkFavorite();
-  }, [visible, book]);
-
-  const handleToggleFavorite = async () => {
+  const fetchUserRating = async () => {
     const user = auth.currentUser;
     if (!user || !book?.id) return;
-    const favRef = doc(db, "users", user.uid, "favorites", book.id);
-    if (isFavorite) {
-      await deleteDoc(favRef);
-      setIsFavorite(false);
-    } else {
-      await setDoc(favRef, book);
-      setIsFavorite(true);
+
+    const ratingDoc = await getDoc(doc(db, "books", book.id, "ratings", user.uid));
+    if (ratingDoc.exists()) {
+      const data = ratingDoc.data();
+      setUserRating(data.rating || 0);
+    }else {
+      setUserRating(0); // ما قيّمش لسه
     }
   };
 
+  fetchUserRating();
+}, [book?.id]);
+
+  useEffect(() => {
+  if (!book?.id) return;
+
+  const reviewRef = collection(db, "books", book.id, "reviews");
+  const q = query(reviewRef, orderBy("timestamp", "desc"));
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const reviews = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    setReviewsList(reviews);
+  });
+
+  return () => unsubscribe(); // تنظيف الاشتراك
+}, [book?.id]);
+
+  
+  const toggleModal = useCallback(() => {
+    onClose();
+  }, [onClose]);
+  const [activeTab, setActiveTab] = useState("description");
+  const [favorites, setFavorites] = useState([]); 
+  const [checked, setChecked] = React.useState(false);
+  const [showExtraOption, setShowExtraOption] = useState(false);
+
+  
+
   const handleAddToLibrary = async () => {
     const user = auth.currentUser;
-    if (user && book?.id) {
+    if (user && book) {
       const bookRef = doc(db, "users", user.uid, "library", book.id);
       await setDoc(bookRef, book);
       router.push("/(tabs)/library");
@@ -90,6 +99,13 @@ export default function BookComponent({ book, visible, onClose }) {
     }
   };
 
+  const handletoggleFavorite = (book) => {
+    if (favorites.some((b) => b.id === book.id)) {
+      setFavorites(favorites.filter((b) => b.id !== book.id));
+    } else {
+      setFavorites([...favorites, book]);
+    }
+  };
   const handleAddToFinished = async () => {
     const user = auth.currentUser;
     if (user && book?.id) {
@@ -114,280 +130,266 @@ export default function BookComponent({ book, visible, onClose }) {
       Alert.alert("alert", "you should log in first");
     }
   };
-
-  useEffect(() => {
-    const fetchAverageRating = async () => {
-      if (!book?.id) return;
-      const snapshot = await getDocs(collection(db, "books", book.id, "ratings"));
-      let total = 0, count = 0;
-      snapshot.forEach((doc) => {
-        const d = doc.data();
-        if (d.rating) {
-          total += d.rating;
-          count += 1;
-        }
-      });
-      setAverageRating(count > 0 ? total / count : 0);
-    };
-    fetchAverageRating();
-  }, [book?.id]);
-
-  useEffect(() => {
-    const fetchUserRating = async () => {
-      const user = auth.currentUser;
-      if (!user || !book?.id) return;
-      const snap = await getDoc(doc(db, "books", book.id, "ratings", user.uid));
-      setUserRating(snap.exists() ? snap.data().rating : 0);
-    };
-    fetchUserRating();
-  }, [book?.id]);
-
-  const submitRating = async (value) => {
-    const user = auth.currentUser;
-    if (!user) return;
-    await setDoc(doc(db, "books", book.id, "ratings", user.uid), {
-      rating: value,
-      userId: user.uid,
-      createdAt: new Date(),
-    });
-    setUserRating(value);
-  };
-
-  useEffect(() => {
-    if (!book?.id) return;
-    const q = query(collection(db, "books", book.id, "reviews"), orderBy("timestamp", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-      const revs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setReviewsList(revs);
-    });
-    return () => unsub();
-  }, [book?.id]);
-
   const submitReview = async () => {
-    const user = auth.currentUser;
-    if (!user || !reviewText.trim()) return;
-    await addDoc(collection(db, "books", book.id, "reviews"), {
-      userId: user.uid,
-      userName: userName || user.email?.split('@')[0] || "User",
-      reviewText: reviewText.trim(),
-      timestamp: new Date(),
-    });
-    const bookRef = doc(db, "books", book.id);
-    await updateDoc(bookRef, { reviews: increment(1) });
-    setReviewText("");
-    Keyboard.dismiss();
-  };
+  const user = auth.currentUser;
+  if (!user || !reviewText.trim()) return;
 
-  useEffect(() => {
-    if (activeTab === "reviews" && reviewInputRef.current) {
-      setTimeout(() => {
-        if (reviewInputRef.current) {
-          reviewInputRef.current.focus();
-        }
-      }, 300);
+  const reviewRef = collection(db, "books", book.id, "reviews");
+  await addDoc(reviewRef, {
+    userId: user.uid,
+    userName: user.displayName || "Anonymous",
+    reviewText: reviewText.trim(),
+    timestamp: new Date(),
+  });
+
+  setReviewText("");
+};
+
+const submitRating = async (bookId, ratingValue) => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const ratingRef = doc(db, "books", bookId, "ratings", user.uid);
+  await setDoc(ratingRef, {
+    rating: ratingValue,
+    userId: user.uid,
+    createdAt: new Date()
+  });
+  setUserRating(ratingValue);
+};
+
+
+  
+  const router = useRouter();
+
+  
+  const handleModalClose = (e) => {
+    
+    if (e.target === e.currentTarget) {
+      onClose();
     }
-  }, [activeTab]);
+  };
+  
+  
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.modalBackground}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.closeButtonContainer}>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Icon name="times" size={18} color="#7d7362" />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView 
-              style={styles.mainScrollView}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollViewContent}
-              keyboardShouldPersistTaps="handled"
-            >
-              <View style={{ 
-                flexDirection: isSmallScreen ? "column" : "row", 
-                alignItems: isSmallScreen ? "center" : "flex-start", 
-                marginBottom: 10 
-              }}>
-                <View style={{ alignItems: "center" }}>
-                  <Image source={{ uri: book?.cover }} style={styles.bookImageInDialog} />
-                  <View style={{ flexDirection: "row", marginTop: 10, alignItems: "center" }}>
-                    <TouchableOpacity onPress={() => setShowExtraOption(!showExtraOption)} style={styles.arrowBtn}>
-                      <Icon name={showExtraOption ? "chevron-up" : "chevron-down"} size={14} color="#7d7362" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={handleAddToLibrary} style={styles.addToLibraryBtn}>
-                      <Text style={styles.addToLibraryText}>Add to library</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={handleToggleFavorite} style={styles.favoriteBtn}>
-                      <Icon name={isFavorite ? "heart" : "heart-o"} size={20} color={isFavorite ? "red" : "#ccc"} />
-                    </TouchableOpacity>
-                  </View>
+    
+        <Modal
+          visible={visible}
+          animationType="fade"
+          transparent={true}
+          onRequestClose={toggleModal}
+           presentationStyle="overFullScreen"
+        >
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <TouchableWithoutFeedback onPress={handleModalClose}>
+          <View style={styles.modalBackground}
+          onPress={onClose}
+          >
+            <View style={styles.modalContent}>
+            <View style={{ 
+            flexDirection: isSmallScreen ? "row" : "row", 
+            alignItems: isSmallScreen ? "center" : "flex-start"
+}}>
 
-                  {showExtraOption && (
+  <View style={{ alignItems: "center" }}>
+    <Image source={{ uri: book?.cover }} style={[styles.bookImageInDialog ,
+  { width: isSmallScreen ? 160 : 180, height: isSmallScreen ? 240 : 260 }
+]} />
+    <View style={{ flexDirection: "row", marginTop: 10, marginRight: 10, alignItems: "center" }}>
+  <TouchableOpacity 
+    onPress={() => setShowExtraOption(!showExtraOption)} 
+    style={styles.arrowBtn}
+  >
+    <Icon name={showExtraOption ? "chevron-up" : "chevron-down"} size={14} color="#7d7362" />
+  </TouchableOpacity>
+
+  <TouchableOpacity onPress={handleAddToLibrary} style={styles.addToLibraryBtn}>
+    <Text style={styles.addToLibraryText}>Add to library</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity onPress={() => handletoggleFavorite(book)} style={styles.favoriteBtn}>
+    <Icon
+      name={favorites.some((b) => b.id === book.id) ? "heart" : "heart-o"}
+      size={20}
+      color={favorites.some((b) => b.id === book.id) ? "red" : "#ccc"}
+    />
+  </TouchableOpacity>
+</View>
+
+  {showExtraOption && (
                     <TouchableOpacity onPress={handleAddToFinished} style={[styles.addToLibraryBtn, { marginTop: 10 }]}>
                       <Text style={styles.addToLibraryText}>Add to Finished</Text>
                     </TouchableOpacity>
-                  )}
-                </View>
+)}
 
-                <View style={{ flex: 1, marginLeft: isSmallScreen ? 0 : 15, marginTop: isSmallScreen ? 10 : 0 }}>
-                  <AirbnbRating isDisabled showRating={false} defaultRating={averageRating} size={20} />
-                  <Text style={styles.bookTitleInDialog}>{book?.title}</Text>
-                  <Text style={styles.bookAuthorInDialog}>by {book?.author}</Text>
-                  <Text style={{ color: "#7d7362" }}>Genres:</Text>
-                  <Text style={styles.bookCategory}>
-                    {Array.isArray(book?.genres) ? book.genres.join(', ') : book?.genres}
-                  </Text>
-                </View>
-              </View>
+  </View>
+  <View style={{ flex: 1, marginLeft: 15, justifyContent: "space-around" }}>
+    <AirbnbRating
+  isDisabled
+  defaultRating={averageRating}
+  showRating={false}
+  size={20}
+/>
+
+    <Text style={[styles.bookTitleInDialog ,
+  { fontSize: isSmallScreen ? 16 : 18,
+      fontWeight: "bold",
+      marginBottom: 6,
+      textAlign: "center", }
+]}>{book?.title}</Text>
+    <Text style={styles.bookAuthorInDialog}>by {book?.author}</Text>
+    <Text style={{ color: "#7d7362" }}>Genres:</Text>
+    <Text style={styles.bookCategory}>{book?.genres}</Text>
+  </View>
+</View>
 
               <View style={{ alignItems: "center", marginBottom: 10 }}>
-                <Text style={{ color: "#7d7362" }}>Rate This Book</Text>
-                <AirbnbRating defaultRating={userRating} showRating={false} size={25} onFinishRating={submitRating} />
+                <Text style={{ color: '#7d7362' }}>Rate This Book</Text>
+                <AirbnbRating
+  defaultRating={userRating}
+  showRating={false}
+  size={25}
+  onFinishRating={(value) => submitRating(book.id, value)}
+/>
+
+
               </View>
 
-              <View style={{ flexDirection: "row", justifyContent: "center", marginVertical: 15 }}>
-                {["description", "reviews"].map((tab) => (
-                  <TouchableOpacity 
-                    key={tab} 
-                    onPress={() => setActiveTab(tab)} 
-                    style={[
-                      styles.tabButton,
-                      activeTab === tab ? styles.tabButtonActive : null
-                    ]}
-                  >
-                    <Text style={[
-                      styles.tabButtonText,
-                      activeTab === tab ? styles.tabButtonTextActive : null
-                    ]}>
-                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <View style={{ marginTop: 10, flex: 1 }}>
-                {activeTab === "reviews" ? (
-                  <View style={styles.reviewsContainer}>
-                    {reviewsList.length === 0 ? (
-                      <Text style={styles.bookdescription}>No reviews yet.</Text>
-                    ) : (
-                      reviewsList.map((r) => (
-                        <View key={r.id} style={styles.reviewItem}>
-                          <Text style={styles.reviewUserName}>{r.userName}</Text>
-                          <Text style={styles.reviewText}>{r.reviewText}</Text>
-                          <Text style={styles.reviewTime}>
-                            {r.timestamp && r.timestamp.seconds 
-                              ? new Date(r.timestamp.seconds * 1000).toLocaleString() 
-                              : 'Just now'}
-                          </Text>
-                        </View>
-                      ))
-                    )}
-                  </View>
-                ) : (
-                  <View style={styles.descriptionContainer}>
-                    <Text style={styles.bookdescription}>{book?.description}</Text>
-                  </View>
-                )}
-              </View>
-            </ScrollView>
-            
-            {activeTab === "reviews" && (
-              <View style={[
-                styles.reviewInputContainer,
-                keyboardVisible && Platform.OS === "ios" ? { paddingBottom: 20 } : {}
-              ]}>
-                <Text style={{ color: "#7d7362", marginBottom: 5 }}>Add your review:</Text>
-                <TextInput
-                  ref={reviewInputRef}
-                  placeholder="Write a review..."
-                  value={reviewText}
-                  onChangeText={setReviewText}
-                  style={styles.reviewInput}
-                  multiline
-                  autoCapitalize="sentences"
-                  keyboardType="default"
-                  keyboardAppearance="default"
-                  maxLength={500}
-                  // Add direct focus handling attributes
-                  accessible={true}
-                  onResponderGrant={() => {
-                    if (reviewInputRef.current) {
-                      reviewInputRef.current.focus();
-                    }
+              <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 20 }}>
+                <TouchableOpacity
+                  onPress={() => setActiveTab("description")}
+                  style={{
+                    padding: 10,
+                    borderBottomWidth: activeTab === "description" ? 2 : 0,
+                    borderBottomColor: "#7d7362",
+                    marginRight: 20,
+                    
                   }}
-                />
-                {reviewText.length > 0 && (
-                  <Button 
-                    title="Submit" 
-                    onPress={submitReview} 
-                    buttonStyle={styles.submitButton}
-                  />
-                )}
+                >
+                  <Text style={{ color: "#7d7362", fontWeight: activeTab === "description" ? "bold" : "normal" }}>
+                    Description
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setActiveTab("reviews")}
+                  style={{
+                    padding: 10,
+                    borderBottomWidth: activeTab === "reviews" ? 2 : 0,
+                    borderBottomColor: "#7d7362",
+                  }}
+                >
+                  <Text style={{ color: "#7d7362", fontWeight: activeTab === "reviews" ? "bold" : "normal" }}>
+                    Reviews
+                  </Text>
+                </TouchableOpacity>
               </View>
-            )}
-          </View>
+
+              <View style={{ marginTop: 10 }}>
+                {activeTab === "reviews" ? (
+  <ScrollView style={{ paddingHorizontal: 10 }}>
+    {reviewsList.length === 0 ? (
+      <Text style={styles.bookdescription}>No reviews yet.</Text>
+    ) : (
+      reviewsList.map((r) => (
+        <View key={r.id} style={{ marginBottom: 10 }}>
+          <Text style={{ fontWeight: "bold", color: "#7d7362" }}>{r.userName}</Text>
+          <Text style={{ color: "#b0ad9a" }}>{r.reviewText}</Text>
+          <Text style={{ fontSize: 10, color: "gray" }}>{new Date(r.timestamp.seconds * 1000).toLocaleString()}</Text>
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      ))
+    )}
+
+    
+    <View style={{ marginTop: 20 }}>
+      <Text style={{ color: "#7d7362", marginBottom: 5 }}>Add your review:</Text>
+      <TextInput
+        placeholder="Write a review..."
+        value={reviewText}
+        onChangeText={setReviewText}
+        style={{
+          backgroundColor: "#f0f0f0",
+          borderRadius: 8,
+          padding: 10,
+          marginBottom: 10,
+          color: "#333",
+          minHeight: 60
+        }}
+        multiline
+      />
+      <TouchableOpacity style={styles.submitButton} onPress={submitReview}>
+              <Text style={styles.submitText}>Submit</Text>
+            </TouchableOpacity>
+    </View>
+  </ScrollView>
+) : (
+  <ScrollView>
+    <Text style={styles.bookdescription}>{book?.description}</Text>
+  </ScrollView>
+)}
+
+              </View>
+            </View>
+          </View>
+          </TouchableWithoutFeedback>
+          </ScrollView>
+        </Modal>
+      
   );
 }
 
 const styles = StyleSheet.create({
-  modalBackground: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  container: { padding: 16 },
+  profileContainer: {
+    position: "absolute",
+    top: 33,
+    right: 20,
   },
-  modalContainer: {
-    width: "90%",
-    maxWidth: 400,
-    maxHeight: "90%",
-    borderRadius: 10,
-    overflow: "hidden",
+  searchContainer: {
+    top: 45,
+    left: 10,
   },
-  modalContent: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 10,
-    width: "100%",
-    height: "100%",
-    flexDirection: "column",
+  searchResult: {
+    marginTop: 40,
+    paddingHorizontal: 10,
   },
-  mainScrollView: {
-    flex: 1,
-  },
-  scrollViewContent: {
-    flexGrow: 1,
-  },
-  closeButtonContainer: {
-    alignItems: "flex-end",
+  header: {
+    fontSize: 32,
+    fontWeight: "bold",
     marginBottom: 10,
+    marginTop: 20,
+    color: "#7d7362",
   },
-  closeButton: {
-    padding: 5,
-    backgroundColor: "#e7e6df",
-    borderRadius: 15,
-    width: 30,
-    height: 30,
+  bookContainer: {
+    padding: 10,
+    borderRadius: 10,
     alignItems: "center",
-    justifyContent: "center",
+  },
+  bookImage: {
+    width: 200,
+    height: 300,
+    borderRadius: 8,
+  },
+  bookTitle: {
+    fontSize: 12,
+    fontWeight: "bold",
+    marginTop: 5,
+    color: "#7d7362",
+  },
+  bookAuthor: {
+    fontSize: 10,
+    color: "#b0ad9a",
   },
   bookImageInDialog: {
-    width: 120,
-    height: 180,
+    width: 220,
+    height: 430,
     borderRadius: 8,
   },
   bookTitleInDialog: {
     fontWeight: "bold",
-    fontSize: 20,
+    fontFamily: 'MalibuSunday',
+    fontSize: 28,
     marginBottom: 5,
     color: "#7d7362",
   },
@@ -396,13 +398,27 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   bookCategory: {
-    marginTop: 5,
-    marginBottom: 10,
-    color: "#b0ad9a",
+    fontFamily: 'MalibuSunday',
+    marginTop: 10,
+    marginBottom: 15,
+    color:'#b0ad9a'
   },
   bookdescription: {
-    color: "#b0ad9a",
-    paddingBottom: 10,
+    fontFamily: 'Arial',
+    color:'#b0ad9a'
+  },
+  modalBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    width: '90%',
+    maxWidth: 400,
   },
   addToLibraryBtn: {
     backgroundColor: "#7d7362",
@@ -411,12 +427,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 8,
   },
   addToLibraryText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 12,
   },
   favoriteBtn: {
     backgroundColor: "#e7e6df",
@@ -424,75 +438,25 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 8,
   },
-  arrowBtn: {
+  arrowBtn:{
+    marginLeft: 8,
     backgroundColor: "#e7e6df",
     padding: 8,
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
+  },
+submitButton: { 
+    width: "100%", 
+    padding: 17, 
+    borderRadius: 20, 
+    backgroundColor: "#b0ad9a", 
+    alignItems: "center" 
   },
-  tabButton: {
-    padding: 10,
-    marginHorizontal: 5,
+  submitText: { 
+    color: "#f6f6f4", 
+    fontSize: 20 
   },
-  tabButtonActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#7d7362",
-  },
-  tabButtonText: {
-    color: "#7d7362",
-  },
-  tabButtonTextActive: {
-    fontWeight: "bold",
-  },
-  reviewsContainer: {
-    paddingBottom: 10,
-  },
-  descriptionContainer: {
-    paddingBottom: 10,
-  },
-  reviewItem: {
-    marginBottom: 10,
-    padding: 8,
-    backgroundColor: "#f9f7f4",
-    borderRadius: 8,
-  },
-  reviewUserName: {
-    fontWeight: "bold",
-    color: "#7d7362",
-  },
-  reviewText: {
-    color: "#b0ad9a",
-  },
-  reviewTime: {
-    fontSize: 10,
-    color: "gray",
-    marginTop: 3,
-  },
-  reviewInputContainer: {
-    borderTopWidth: 1,
-    borderTopColor: "#e7e6df",
-    paddingTop: 10,
-    marginTop: 5,
-    backgroundColor: "#fff",
-    zIndex: 99,
-  },
-  reviewInput: {
-    backgroundColor: "#f0f0f0",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
-    color: "#333",
-    minHeight: 60,
-    maxHeight: 100,
-    borderColor: "#e7e6df",
-    borderWidth: 1,
-    textAlignVertical: 'top',
-  },
-  submitButton: {
-    backgroundColor: "#7d7362",
-    borderRadius: 20,
-  },
+  
 });
