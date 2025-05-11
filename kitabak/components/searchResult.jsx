@@ -1,13 +1,19 @@
-
 import React, { useState } from "react";
 import BookComponent from './book'; 
-import { View, FlatList, Text, TouchableOpacity, StyleSheet, Modal, Image } from "react-native";
+import { View, FlatList, Text, TouchableOpacity, StyleSheet, Modal, Image, Dimensions, Platform } from "react-native";
+
+const truncateText = (text, limit) => {
+  if (!text) return '';
+  return text.length > limit ? text.substring(0, limit) + ' ......' : text;
+};
 
 export default function BookList({ books, searchPerformed }) {
   const [selectedBook, setSelectedBook] = useState(null);
   const [bookForDetails, setBookForDetails] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
 
+  const screenWidth = Dimensions.get("window").width;
+  const modalWidth = screenWidth < 500 ? "80%" : "50%";
 
   if (searchPerformed && !books.length) {
     return <Text style={styles.noResults}>No books found</Text>;
@@ -32,7 +38,7 @@ export default function BookList({ books, searchPerformed }) {
       {selectedBook && (
         <Modal transparent={true} animationType="fade" visible={true}>
           <View style={styles.modalBackground}>
-            <View style={styles.modalContainer}>
+            <View style={[styles.modalContainer, { width: modalWidth }]}>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setSelectedBook(null)}
@@ -45,8 +51,9 @@ export default function BookList({ books, searchPerformed }) {
                 style={styles.bookImage}
               />
 
-              <Text style={styles.modalTitle}>{selectedBook.title}</Text>
-              <Text style={styles.modalAuthor}>by {selectedBook.author}</Text>
+              <Text style={styles.bookDescription}>
+                {truncateText(selectedBook.description, 110)}
+              </Text>
 
               <TouchableOpacity
                 style={styles.addButton}
@@ -117,7 +124,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalContainer: {
-    width: "50%",
     backgroundColor: "#f6f6f4",
     borderRadius: 20,
     padding: 20,
@@ -138,16 +144,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
   },
-  modalTitle: {
-    fontFamily: "MalibuSunday",
-    fontSize: 20,
-    color: "#585047",
-    marginBottom: 5,
-    textAlign: "center"
-  },
-  modalAuthor: {
-    fontSize: 12,
+  bookDescription: {
+    fontSize: 14,
     color: "#7d7362",
+    textAlign: "center",
     marginBottom: 10,
   },
   addButton: {
@@ -155,9 +155,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 10,
+    marginTop: 10,
   },
   addButtonText: {
     color: "#f6f6f4",
-    fontWeight: "100%",
+    fontWeight: Platform.OS === "ios" ? "600" : "bold",
   },
 });
