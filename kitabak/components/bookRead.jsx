@@ -211,7 +211,7 @@ const BooksReadSection = ({ userId }) => {
                 onValueChange={(itemValue) => {
                   setReadingGoal(Number(itemValue));
                 }}
-                style={{width: '20%'}}
+                style={{width: '50%'}}
               >
                 {Array.from({ length: 31 }, (_, i) => i).map((num) => (
                   <Picker.Item key={num} label={`${num} book${num === 1 ? "" : "s"}`} value={num} />

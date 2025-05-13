@@ -91,7 +91,7 @@ export default function StoreScreen() {
       <View style={styles.searchResult}>
         <SearchResult books={book} searchPerformed={searchPerformed} />
       </View>
-        <Text style={styles.header1}>Fictional</Text>
+        <Text style={styles.header1}>FICTIONAL</Text>
         <FlatList
           data={fictionalBooks}
           keyExtractor={(item) => item.id}
@@ -109,7 +109,7 @@ export default function StoreScreen() {
           )}
         />
 
-        <Text style={styles.header}>Non-Fictional</Text>
+        <Text style={styles.header}>NON-FICTIONAL</Text>
         <FlatList
           data={nonFictionBooks}
           keyExtractor={(item) => item.id}
@@ -126,7 +126,7 @@ export default function StoreScreen() {
           )}
         />
 
-        <Text style={styles.header}>Fantasy</Text>
+        <Text style={styles.header}>FANTASY</Text>
         <FlatList
           data={fantasyBooks}
           keyExtractor={(item) => item.id}
@@ -143,7 +143,7 @@ export default function StoreScreen() {
           )}
         />
 
-        <Text style={styles.header}>Historical</Text>
+        <Text style={styles.header}>HISTORIACL</Text>
         <FlatList
           data={historicalBooks}
           keyExtractor={(item) => item.id}
@@ -159,7 +159,7 @@ export default function StoreScreen() {
             </TouchableOpacity>
           )}
         />
-        <Text style={styles.header}>Romantic</Text>
+        <Text style={styles.header}>ROMANTIC</Text>
         <FlatList
           data={romanticBooks}
           keyExtractor={(item) => item.id}
@@ -209,18 +209,20 @@ const styles = StyleSheet.create({
   header1: {
     fontSize: 40,
     fontWeight: "bold",
-    marginBottom: 10,
-    marginTop: 100,
-    color: "#7d7362",
-    fontFamily: 'MalibuSunday',
+    marginBottom: 5,
+    marginLeft: 12,
+    marginTop: 80,
+    color: "#585047",
+    fontFamily: "MalibuSunday",
   },
   header: {
     fontSize: 40,
     fontWeight: "bold",
-    marginBottom: 10,
+    marginBottom: 5,
+    marginLeft: 12,
     marginTop: 20,
-    color: "#7d7362",
-    fontFamily: 'MalibuSunday',
+    color: "#585047",
+    fontFamily: "MalibuSunday",
   },
   bookContainer: {
     padding: 10,
