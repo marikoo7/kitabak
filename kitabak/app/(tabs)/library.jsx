@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ScrollView, useWindowDimensions } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ScrollView, useWindowDimensions, Alert } from "react-native";
 import { db, auth } from "../../kitabak-server/firebaseConfig";
 import { collection, getDocs, setDoc, deleteDoc, doc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
@@ -68,6 +68,7 @@ export default function LibraryScreen() {
         setUserUID(null);
       }
     });
+    return () => unsubscribe();
   }, []);
 
   useFocusEffect(
@@ -134,6 +135,112 @@ export default function LibraryScreen() {
       } else {
         console.error("Book not found anywhere.");
       }
+    }
+  };
+
+  const handleMarkAsFinished = async (book) => {
+    try {
+      const finishedData = {
+        id: String(book.id),
+        title: book.title || "No Title",
+        author: book.author || "Unknown Author",
+        cover: book.cover || book.image || null,
+        description: book.description || "",
+        page_count: book.page_count || 0,
+        genres: book.genres || [],
+        finishedTimestamp: new Date().toISOString(),
+      };
+      
+      await setDoc(doc(db, "users", userUID, "booksRead", book.id), finishedData);
+      
+      // Optionally update the book in library to show it's completed
+      await setDoc(
+        doc(db, "users", userUID, "library", book.id),
+        {
+          ...book,
+          pages_read: book.page_count, // Mark as fully read
+        },
+        { merge: true }
+      );
+      
+      // Update local state to reflect the change
+      setLibraryBooks((prevBooks) =>
+        prevBooks.map((b) =>
+          b.id === book.id ? { ...b, pages_read: book.page_count } : b
+        )
+      );
+      
+      // If the book is also in favorites, update that too
+      if (isFavorite[book.id]) {
+        await setDoc(
+          doc(db, "users", userUID, "favorites", book.id),
+          {
+            ...book,
+            pages_read: book.page_count,
+          },
+          { merge: true }
+        );
+        
+        setFavoriteBooks((prevFavs) =>
+          prevFavs.map((b) =>
+            b.id === book.id ? { ...b, pages_read: book.page_count } : b
+          )
+        );
+      }
+      
+      Alert.alert("Success", "Book marked as finished!");
+    } catch (error) {
+      console.error("Error marking book as finished:", error);
+      Alert.alert("Error", "Failed to mark book as finished");
+    }
+  };
+
+  const handleMarkAsUnfinished = async (book) => {
+    try {
+      // remove from booksRead collection if it exists there
+      await deleteDoc(doc(db, "users", userUID, "booksRead", book.id));
+      
+      // reset how many pages the user has read
+      const newPagesRead = Math.ceil(book.page_count * 0);
+      
+      await setDoc(
+        doc(db, "users", userUID, "library", book.id),
+        {
+          ...book,
+          pages_read: newPagesRead,
+        },
+        { merge: true }
+      );
+      
+      // update local state to reflect the change
+      setLibraryBooks((prevBooks) =>
+        prevBooks.map((b) =>
+          b.id === book.id ? { ...b, pages_read: newPagesRead } : b
+        )
+      );
+      
+      // if the book is also in favorites, update that too
+      if (isFavorite[book.id]) {
+        await setDoc(
+          doc(db, "users", userUID, "favorites", book.id),
+          {
+            ...book,
+            pages_read: newPagesRead,
+          },
+          { merge: true }
+        );
+        
+        setFavoriteBooks((prevFavs) =>
+          prevFavs.map((b) =>
+            b.id === book.id ? { ...b, pages_read: newPagesRead } : b
+          )
+        );
+      }
+      
+      Alert.alert("Success", "Book marked as unfinished!");
+    } catch (error) {
+      console.error("Error marking book as unfinished:", error);
+      Alert.alert("Error", "Failed to mark book as unfinished");
     }
   };
 
@@ -273,6 +380,8 @@ export default function LibraryScreen() {
               ? Math.floor((item.pages_read / item.page_count) * 100)
               : 0;
           const isCurrentlyFavorite = favoriteBooks.some((b) => b.id === item.id);
+          const isFinished = percent === 100;
+          
           return (
             <View style={[styles.bookCardGrid, { width: CARD_WIDTH }]}>
               <TouchableOpacity onPress={() => handleBookPress(item)}>
@@ -312,6 +421,25 @@ export default function LibraryScreen() {
                       <Icon name={isCurrentlyFavorite ? "heart" : "heart-o"} size={16} color={isCurrentlyFavorite ? "#e74c3c" : "#585047"} style={styles.menuIcon} />
                       {isCurrentlyFavorite ? " Remove from Favorites" : " Add to Favorites"}
                     </MenuItem>
+                    
+                    {isFinished ? (
+                      <MenuItem
+                        onPress={() => { hideMenu(item.id); handleMarkAsUnfinished(item); }}
+                        textStyle={styles.menuItemText}
+                      >
+                        <Icon name="undo" size={16} color="#e74c3c" style={styles.menuIcon} />
+                        <Text>  Mark as Unfinished</Text>
+                      </MenuItem>
+                    ) : (
+                      <MenuItem
+                        onPress={() => { hideMenu(item.id); handleMarkAsFinished(item); }}
+                        textStyle={styles.menuItemText}
+                      >
+                        <Icon name="check-circle-o" size={16} color="#2d502f" style={styles.menuIcon} />
+                        <Text>  Mark as Finished</Text>
+                      </MenuItem>
+                    )}
+                    
                     <MenuItem
                       onPress={() => { hideMenu(item.id); handleRemoveBook(item.id); }}
                       textStyle={styles.menuItemText}

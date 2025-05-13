@@ -188,8 +188,9 @@ export default function StoreScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-
+  container: { 
+    padding: 16 
+  },
   profileContainer: {
     position: "absolute",
     top: 45,
@@ -248,5 +249,4 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#b0ad9a",
   },
-  
 });
