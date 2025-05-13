@@ -310,14 +310,14 @@ export default function LibraryScreen() {
                       textStyle={styles.menuItemText} 
                     >
                       <Icon name={isCurrentlyFavorite ? "heart" : "heart-o"} size={16} color={isCurrentlyFavorite ? "#e74c3c" : "#585047"} style={styles.menuIcon} />
-                      {isCurrentlyFavorite ? "Remove from Favorites" : "Add to Favorites"}
+                      {isCurrentlyFavorite ? " Remove from Favorites" : " Add to Favorites"}
                     </MenuItem>
                     <MenuItem
                       onPress={() => { hideMenu(item.id); handleRemoveBook(item.id); }}
                       textStyle={styles.menuItemText}
                     >
                       <Icon name="trash-o" size={16} color="#e74c3c" style={styles.menuIcon} />
-                      Remove
+                       <Text>  Remove</Text>
                     </MenuItem>
                   </Menu>
                 )}
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     width: "100%",
     paddingHorizontal: 4,
-    marginTop: 4,
+    marginTop: 10,
   },
   favoriteIcon: {
     marginLeft: 6,
@@ -409,6 +409,7 @@ const styles = StyleSheet.create({
   threeDotsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: 5,
   },
   dot: {
     width: 4,
@@ -418,7 +419,7 @@ const styles = StyleSheet.create({
     marginLeft: 2.5,
   },
   menuIcon: {
-    marginRight: 10,
+    marginRight: 16,
   },
   menuContainer: {
     backgroundColor: '#e7e6df',
